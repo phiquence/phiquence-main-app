@@ -180,12 +180,14 @@ function HeroSection() {
           </div>
         </div>
         <div className="flex items-center justify-center">
-          <div className="flex flex-col items-center gap-4">
-            <CircleDollarSign className="h-40 w-40 text-primary drop-shadow-lg" />
-            <span className="text-5xl font-bold tracking-tighter text-foreground">
-                PHIQUENCE
-            </span>
-          </div>
+            <Image 
+                src="/logo.png" 
+                alt="Phiquence Platform Logo" 
+                width={400} 
+                height={400} 
+                className="rounded-full shadow-2xl shadow-primary/20"
+                priority
+            />
         </div>
       </div>
     </section>
