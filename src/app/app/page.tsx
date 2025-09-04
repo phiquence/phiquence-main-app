@@ -59,7 +59,7 @@ export default function DashboardPage() {
       <header className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold tracking-tight font-headline">Dashboard</h1>
-           <p className="text-muted-foreground">Welcome back, {loading ? <Skeleton className="h-4 w-24 inline-block" /> : (userData?.name || 'User')}!</p>
+           <div className="text-muted-foreground">Welcome back, {loading ? <Skeleton className="h-4 w-24 inline-block" /> : (userData?.name || 'User')}!</div>
         </div>
         <div className="flex gap-2">
            <Button variant="outline" asChild>
