@@ -1,0 +1,240 @@
+
+'use client';
+
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { ArrowUpRight, DollarSign, Users, Zap, Loader2, AlertTriangle, Star, CheckCircle, BarChart3, TrendingUp, Bell, ShieldAlert, BadgeHelp } from "lucide-react";
+import Link from "next/link";
+import { useAuth } from "@/hooks/use-auth";
+import { useEffect, useState } from "react";
+import { getUserData, UserData } from "@/services/user.service";
+import { useToast } from "@/hooks/use-toast";
+import { TradingChart } from "@/components/app/trading-chart";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Skeleton } from "@/components/ui/skeleton";
+
+
+function StatCard({ icon: Icon, title, value, footer, valueClassName, isLoading }: { icon: React.ElementType, title: string, value: string | number, footer: string, valueClassName?: string, isLoading: boolean }) {
+  return (
+    <Card>
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+        <CardTitle className="text-sm font-medium">
+          {title}
+        </CardTitle>
+        <Icon className="h-4 w-4 text-muted-foreground" />
+      </CardHeader>
+      <CardContent>
+        {isLoading ? (
+            <>
+                <Skeleton className="h-8 w-3/4 mb-2" />
+                <Skeleton className="h-3 w-1/2" />
+            </>
+        ) : (
+            <>
+                <div className={`text-2xl font-bold ${valueClassName}`}>{value}</div>
+                <p className="text-xs text-muted-foreground">
+                {footer}
+                </p>
+            </>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+
+export default function DashboardPage() {
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const [userData, setUserData] = useState<UserData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (user) {
+      const unsubscribe = getUserData(user.uid, (data) => {
+        if (data) {
+          setUserData(data);
+        } else {
+          // This case might happen temporarily or if the doc is deleted.
+          // Setting an error here can be too aggressive. Let's let it be null.
+          setUserData(null);
+        }
+        setLoading(false);
+      }, (err) => {
+        console.error(err);
+        setError("Could not fetch user information. Please check your connection and refresh.");
+        setLoading(false);
+      });
+
+      return () => unsubscribe();
+    }
+  }, [user]);
+
+  const formatCurrency = (amount: number = 0) => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+    }).format(amount);
+  };
+  
+  const balances = userData?.balances || { usdt: 0, bnb: 0, phi: 0, reward: 0, commission: 0, trading: 0 };
+
+  return (
+    <div className="space-y-8">
+      <header className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight font-headline">Dashboard</h1>
+          <p className="text-muted-foreground">Welcome back, {loading ? '...' : (userData?.name || 'User')}!</p>
+        </div>
+        <div className="flex gap-2">
+           <Button variant="outline" asChild>
+                <Link href="/app/wallet">Deposit</Link>
+           </Button>
+           <Button className="bg-accent hover:bg-accent/90 text-accent-foreground" asChild>
+                <Link href="/app/staking">Stake Now</Link>
+           </Button>
+        </div>
+      </header>
+      
+      {error ? (
+         <Card className="bg-destructive/10 border-destructive">
+            <CardHeader className="flex flex-row items-center gap-4">
+                <AlertTriangle className="h-8 w-8 text-destructive"/>
+                <div>
+                    <CardTitle className="text-destructive">Error</CardTitle>
+                    <CardDescription className="text-destructive/80">{error}</CardDescription>
+                </div>
+            </CardHeader>
+        </Card>
+      ) : (
+        <>
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+                <StatCard 
+                    icon={DollarSign}
+                    title="USDT Balance"
+                    value={formatCurrency(balances.usdt)}
+                    footer="Main wallet"
+                    isLoading={loading}
+                />
+                 <StatCard 
+                    icon={Zap}
+                    title="PHI Balance"
+                    value={balances.phi?.toLocaleString() || 0}
+                    footer="Native token"
+                    isLoading={loading}
+                />
+                 <StatCard 
+                    icon={DollarSign}
+                    title="BNB Balance"
+                    value={balances.bnb?.toLocaleString() || 0}
+                    footer="Gas & Fees"
+                    isLoading={loading}
+                />
+                 <StatCard 
+                    icon={TrendingUp}
+                    title="Trading Balance"
+                    value={formatCurrency(balances.trading)}
+                    footer="Hub funds"
+                    isLoading={loading}
+                    valueClassName="text-primary"
+                />
+                 <StatCard 
+                    icon={DollarSign}
+                    title="Pending Rewards"
+                    value={formatCurrency(balances.reward)}
+                    footer="From staking & commissions"
+                    isLoading={loading}
+                />
+            </div>
+
+            <Card>
+                <CardHeader>
+                    <CardTitle>Today's Rewards</CardTitle>
+                    <CardDescription>7-day and 30-day reward chart</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <TradingChart data={[]} />
+                </CardContent>
+            </Card>
+        </>
+      )}
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="lg:col-span-2 space-y-8">
+           <Card>
+              <CardHeader>
+                  <CardTitle>Team Snapshot</CardTitle>
+              </CardHeader>
+              <CardContent className="grid grid-cols-3 gap-4 text-center">
+                    <div>
+                        <p className="text-2xl font-bold">0</p>
+                        <p className="text-sm text-muted-foreground">Directs</p>
+                    </div>
+                     <div>
+                        <p className="text-2xl font-bold">0</p>
+                        <p className="text-sm text-muted-foreground">Total Team</p>
+                    </div>
+                     <div>
+                        <p className="text-2xl font-bold text-green-500">{formatCurrency(0)}</p>
+                        <p className="text-sm text-muted-foreground">Today's Income</p>
+                    </div>
+              </CardContent>
+              <CardFooter>
+                <Button variant="outline" className="w-full" asChild>
+                    <Link href="/app/affiliate">View Affiliate Center</Link>
+                </Button>
+              </CardFooter>
+           </Card>
+
+            <Card>
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2"><Bell /> Notices</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                    <Alert>
+                        <ShieldAlert className="h-4 w-4" />
+                        <AlertTitle>Scheduled Maintenance</AlertTitle>
+                        <AlertDescription>
+                        The platform will be down for scheduled maintenance on Friday. Staking rewards will not be affected.
+                        </AlertDescription>
+                    </Alert>
+                </CardContent>
+            </Card>
+
+        </div>
+
+        <div className="space-y-8">
+            <Card>
+                <CardHeader>
+                    <CardTitle>Join Trading Hub</CardTitle>
+                    <CardDescription>Get a free $5 credit to start trading when you join.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <p className="mb-4">Experience the thrill of the market and test your skills in our simulated trading environment.</p>
+                    <Button asChild className="w-full">
+                        <Link href="/app/trading-hub">Join Trading Hub</Link>
+                    </Button>
+                </CardContent>
+            </Card>
+
+             <Card>
+                <CardHeader>
+                    <CardTitle>AI Support</CardTitle>
+                    <CardDescription>Have a question? Get instant answers from our AI assistant.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <p className="mb-4">Navigate to our support page to ask questions about your account, staking, or any other features.</p>
+                     <Button asChild>
+                       <Link href="/app/support" className="inline-flex items-center gap-2">
+                          <BadgeHelp className="h-4 w-4"/>
+                          Go to Support
+                       </Link>
+                    </Button>
+                </CardContent>
+            </Card>
+        </div>
+      </div>
+    </div>
+  )
+}
