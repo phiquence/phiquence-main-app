@@ -99,7 +99,7 @@ const Sidebar = React.forwardRef<
   HTMLElement,
   React.ComponentProps<"aside">
 >(({ className, children, ...props }, ref) => {
-  const { state, isMobile } = useSidebar()
+  const { isMobile } = useSidebar()
 
   if (isMobile) {
     return (
@@ -126,7 +126,7 @@ const Sidebar = React.forwardRef<
       ref={ref}
       className={cn(
         "hidden md:flex flex-col bg-sidebar text-sidebar-foreground transition-all duration-300 ease-in-out",
-        state === "expanded" ? "w-[var(--sidebar-width-expanded)]" : "w-[var(--sidebar-width-collapsed)]",
+        "data-[state=expanded]:w-[var(--sidebar-width-expanded)] data-[state=collapsed]:w-[var(--sidebar-width-collapsed)]",
         className
       )}
       style={{
@@ -141,6 +141,7 @@ const Sidebar = React.forwardRef<
 })
 Sidebar.displayName = "Sidebar"
 
+
 const SidebarInset = React.forwardRef<
   HTMLDivElement,
   React.ComponentProps<"main">
@@ -148,7 +149,7 @@ const SidebarInset = React.forwardRef<
   const { state, isMobile } = useSidebar();
   
   if (isMobile) {
-    return <main ref={ref} className={cn("flex-1", className)} {...props} />;
+    return <main ref={ref} className={cn("flex-1 pt-16", className)} {...props} />;
   }
 
   return (
@@ -298,32 +299,54 @@ const SidebarMenuButton = React.forwardRef<
     },
     ref
   ) => {
-    const Comp = asChild ? Slot : "button"
     const { state } = useSidebar()
     
+    if (asChild) {
+       const child = React.Children.only(children);
+       return (
+           <Tooltip>
+                <TooltipTrigger asChild>
+                   <Slot
+                     ref={ref as React.Ref<HTMLElement>}
+                     data-active={isActive}
+                     className={cn(sidebarMenuButtonVariants(), state === 'collapsed' && "justify-center", className)}
+                     {...props}
+                   >
+                     {child}
+                   </Slot>
+                 </TooltipTrigger>
+                 {tooltip && state === 'collapsed' && (
+                    <TooltipContent side="right" align="center">
+                        {typeof tooltip === 'string' ? <p>{tooltip}</p> : tooltip}
+                    </TooltipContent>
+                 )}
+           </Tooltip>
+       );
+    }
+    
     const buttonContent = (
-      <>
-        {React.Children.map(children, (child, index) => {
-          if (React.isValidElement(child) && index === 0) { // Icon
-            return React.cloneElement(child, { className: 'h-5 w-5 shrink-0' });
-          }
-          if (typeof child === 'string' || React.isValidElement(child)) { // Label
-             return <span className={cn("truncate", state === 'collapsed' && 'hidden')}>{child}</span>
-          }
-          return child;
-        })}
-      </>
+       <>
+         {React.Children.map(children, (child, index) => {
+           if (React.isValidElement(child) && index === 0) { // Icon
+             return React.cloneElement(child, { className: 'h-5 w-5 shrink-0' });
+           }
+           if (typeof child === 'string' || React.isValidElement(child)) { // Label
+              return <span className={cn("truncate", state === 'collapsed' && 'hidden')}>{child}</span>
+           }
+           return child;
+         })}
+       </>
     );
 
     const button = (
-      <Comp
+      <button
         ref={ref}
         data-active={isActive}
         className={cn(sidebarMenuButtonVariants(), state === 'collapsed' && "justify-center", className)}
         {...props}
       >
         {buttonContent}
-      </Comp>
+      </button>
     )
 
     if (!tooltip || state === 'expanded') {
