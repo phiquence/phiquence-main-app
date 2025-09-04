@@ -39,10 +39,10 @@ const marketData = [
 ];
 
 const stakingPackages = [
-  { name: 'Harmony', daily: '0.5%', min: 100, max: 999, icon: HeartHandshake, href: '/app/staking?package=harmony' },
-  { name: 'Proportion', daily: '0.75%', min: 1000, max: 4999, icon: Scale, href: '/app/staking?package=proportion' },
-  { name: 'Divine', daily: '1.0%', min: 5000, max: 9999, icon: Zap, href: '/app/staking?package=divine' },
-  { name: 'Infinity', daily: '1.25%', min: 10000, max: '∞', icon: InfinityIcon, href: '/app/staking?package=infinity' },
+  { name: 'Harmony', daily: '0.5%', min: 100, max: 999, icon: HeartHandshake, href: { pathname: '/app/staking', query: { package: 'harmony' } } },
+  { name: 'Proportion', daily: '0.75%', min: 1000, max: 4999, icon: Scale, href: { pathname: '/app/staking', query: { package: 'proportion' } } },
+  { name: 'Divine', daily: '1.0%', min: 5000, max: 9999, icon: Zap, href: { pathname: '/app/staking', query: { package: 'divine' } } },
+  { name: 'Infinity', daily: '1.25%', min: 10000, max: '∞', icon: InfinityIcon, href: { pathname: '/app/staking', query: { package: 'infinity' } } },
 ];
 
 const howItWorksSteps = [
