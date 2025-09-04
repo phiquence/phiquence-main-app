@@ -19,6 +19,7 @@ const initializeFirebaseAdmin = () => {
             const serviceAccountKey = process.env.FIREBASE_SERVICE_ACCOUNT_KEY;
 
             if (serviceAccountKey) {
+                console.log("Initializing Firebase Admin with Service Account Key...");
                 const serviceAccount = JSON.parse(serviceAccountKey);
                 admin.initializeApp({
                     credential: admin.credential.cert(serviceAccount),
@@ -27,6 +28,7 @@ const initializeFirebaseAdmin = () => {
             } else {
                  // This configuration is for environments like Firebase App Hosting where service account might not be set as a file
                  // It relies on Application Default Credentials.
+                 console.log("Initializing Firebase Admin with Application Default Credentials...");
                  admin.initializeApp({
                     projectId: 'phiquence-ndim2',
                     storageBucket: 'phiquence-ndim2.appspot.com',
@@ -50,68 +52,69 @@ const app = new Hono().basePath('/api');
 // --- Auth Middleware ---
 // Verifies the user's token for every API request.
 const authMiddleware = async (c: any, next: any) => {
-  const { auth } = initializeFirebaseAdmin();
-  const authHeader = c.req.header('Authorization');
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return c.json({ ok: false, error: 'unauthorized' }, 401);
-  }
-  const token = authHeader.split('Bearer ')[1];
   try {
-    const decodedToken = await auth.verifyIdToken(token);
-    c.set('uid', decodedToken.uid);
-    c.set('claims', decodedToken);
-    await next();
+      const { auth } = initializeFirebaseAdmin();
+      const authHeader = c.req.header('Authorization');
+      if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        return c.json({ ok: false, error: 'unauthorized' }, 401);
+      }
+      const token = authHeader.split('Bearer ')[1];
+      const decodedToken = await auth.verifyIdToken(token);
+      c.set('uid', decodedToken.uid);
+      c.set('claims', decodedToken);
+      await next();
   } catch (error) {
-    return c.json({ ok: false, error: 'unauthorized', details: (error as Error).message }, 401);
+     console.error("Auth middleware error:", error);
+     return c.json({ ok: false, error: 'unauthorized', details: (error as Error).message }, 401);
   }
 };
 
 
 // Unprotected webhook route
 app.post('/wallet/webhook', async (c) => {
-    initializeFirebaseAdmin();
-    const { db } = admin.apps.length > 0 ? { db: admin.firestore() } : { db: null };
-
-    if (!db) {
-         return c.json({ ok: false, error: "database_not_initialized" }, 500);
-    }
-
-    const signature = c.req.header('x-alchemy-signature');
-    const webhookSecret = process.env.ALCHEMY_WEBHOOK_SECRET;
-
-    if (!webhookSecret) {
-        console.error("ALCHEMY_WEBHOOK_SECRET is not set.");
-        return c.json({ ok: false, error: "webhook_misconfigured" }, 500);
-    }
-    
-    const body = await c.req.text(); // Read body as raw text
-    
-    // Verify the webhook signature for security
-    const hmac = crypto.createHmac('sha256', webhookSecret);
-    hmac.update(body, 'utf-8');
-    const digest = hmac.digest('hex');
-
-    if (signature !== digest) {
-        return c.json({ ok: false, error: 'invalid_signature' }, 401);
-    }
-    
-    const webhookData = JSON.parse(body);
-    const activity = webhookData?.event?.data?.block?.activities?.[0];
-
-    if (!activity || activity.category !== 'token') {
-        return c.json({ ok: true, message: "Not a token transaction or no activity." });
-    }
-
-    const txHash = activity.hash;
-    const toAddress = activity.toAddress;
-    const fromAddress = activity.fromAddress;
-    const rawValue = activity.rawContract.rawValue;
-    const decimals = parseInt(activity.rawContract.decimal, 16);
-    const tokenAddress = activity.rawContract.address;
-    
-    const amount = parseFloat(ethers.utils.formatUnits(rawValue, decimals));
-
     try {
+        initializeFirebaseAdmin();
+        const { db } = admin.apps.length > 0 ? { db: admin.firestore() } : { db: null };
+
+        if (!db) {
+            return c.json({ ok: false, error: "database_not_initialized" }, 500);
+        }
+
+        const signature = c.req.header('x-alchemy-signature');
+        const webhookSecret = process.env.ALCHEMY_WEBHOOK_SECRET;
+
+        if (!webhookSecret) {
+            console.error("ALCHEMY_WEBHOOK_SECRET is not set.");
+            return c.json({ ok: false, error: "webhook_misconfigured" }, 500);
+        }
+        
+        const body = await c.req.text(); // Read body as raw text
+        
+        // Verify the webhook signature for security
+        const hmac = crypto.createHmac('sha256', webhookSecret);
+        hmac.update(body, 'utf-8');
+        const digest = hmac.digest('hex');
+
+        if (signature !== digest) {
+            return c.json({ ok: false, error: 'invalid_signature' }, 401);
+        }
+        
+        const webhookData = JSON.parse(body);
+        const activity = webhookData?.event?.data?.block?.activities?.[0];
+
+        if (!activity || activity.category !== 'token') {
+            return c.json({ ok: true, message: "Not a token transaction or no activity." });
+        }
+
+        const txHash = activity.hash;
+        const toAddress = activity.toAddress;
+        const fromAddress = activity.fromAddress;
+        const rawValue = activity.rawContract.rawValue;
+        const decimals = parseInt(activity.rawContract.decimal, 16);
+        const tokenAddress = activity.rawContract.address;
+        
+        const amount = parseFloat(ethers.utils.formatUnits(rawValue, decimals));
+
         const txQuery = await db.collection("transactions").where("ref", "==", txHash).get();
         if (!txQuery.empty) {
             return c.json({ ok: false, error: "transaction_already_processed" }, 400);
@@ -166,7 +169,6 @@ app.post('/wallet/webhook', async (c) => {
         });
         
         return c.json({ ok: true, message: `Processed deposit for user ${userId}` });
-
     } catch (e: any) {
         console.error("Webhook processing failed:", e);
         return c.json({ ok: false, error: e.message || "An unexpected error occurred." }, 500);
@@ -183,15 +185,15 @@ app.use('*', authMiddleware);
  * This does NOT update the user's balance.
  */
 app.post('/wallet/request-deposit', async (c) => {
-    const { db } = initializeFirebaseAdmin();
-    const { amount, currency, txHash } = await c.req.json();
-    const uid = c.get('uid');
-
-    if (!amount || !currency || !txHash || typeof amount !== 'number' || amount <= 0) {
-        return c.json({ ok: false, error: "Invalid request payload." }, 400);
-    }
-    
     try {
+        const { db } = initializeFirebaseAdmin();
+        const { amount, currency, txHash } = await c.req.json();
+        const uid = c.get('uid');
+
+        if (!amount || !currency || !txHash || typeof amount !== 'number' || amount <= 0) {
+            return c.json({ ok: false, error: "Invalid request payload." }, 400);
+        }
+        
         const transactionRef = db.collection("transactions").doc();
         
         await transactionRef.set({
@@ -209,7 +211,6 @@ app.post('/wallet/request-deposit', async (c) => {
         });
 
         return c.json({ ok: true, message: `Your deposit request for ${amount} ${currency} has been submitted for review.`});
-
     } catch (e: any) {
         console.error("Deposit request submission failed:", e);
         return c.json({ ok: false, error: e.message || "An unexpected error occurred." }, 500);
@@ -225,10 +226,10 @@ app.post('/wallet/request-deposit', async (c) => {
  * and receive a free gift credit.
  */
 app.post('/trading/join', async (c) => {
-    const { db } = initializeFirebaseAdmin();
-    const uid = c.get('uid');
-    
     try {
+        const { db } = initializeFirebaseAdmin();
+        const uid = c.get('uid');
+    
         const settingsDoc = await db.doc("settings/global").get();
         const gift = settingsDoc.data()?.affiliate?.tradingHub?.freeJoinGift || 5;
         const userRef = db.doc(`users/${uid}`);
@@ -252,8 +253,8 @@ app.post('/trading/join', async (c) => {
         });
         
         return c.json({ ok: true, message: `Successfully joined and received a $${gift} bonus.` });
-
     } catch (e: any) {
+        console.error("Join trading hub failed:", e);
         return c.json({ ok: false, error: e.message || "Failed to join trading hub." }, 500);
     }
 });
@@ -263,19 +264,19 @@ app.post('/trading/join', async (c) => {
  * Allows a user to place a bet in a trading session.
  */
 app.post('/trading/bet', async (c) => {
-    const { db } = initializeFirebaseAdmin();
-    const { sessionId, direction, amount } = await c.req.json();
-    const uid = c.get('uid');
-
-    if (!sessionId || !direction || !amount || (direction !== 'rise' && direction !== 'fall') || amount <= 0) {
-        return c.json({ ok: false, error: 'invalid_payload' }, 400);
-    }
-
-    const userRef = db.doc(`users/${uid}`);
-    const sessionRef = db.doc(`tradingSessions/${sessionId}`);
-    const betRef = db.collection(`tradingSessions/${sessionId}/bets`).doc(uid);
-
     try {
+        const { db } = initializeFirebaseAdmin();
+        const { sessionId, direction, amount } = await c.req.json();
+        const uid = c.get('uid');
+
+        if (!sessionId || !direction || !amount || (direction !== 'rise' && direction !== 'fall') || amount <= 0) {
+            return c.json({ ok: false, error: 'invalid_payload' }, 400);
+        }
+
+        const userRef = db.doc(`users/${uid}`);
+        const sessionRef = db.doc(`tradingSessions/${sessionId}`);
+        const betRef = db.collection(`tradingSessions/${sessionId}/bets`).doc(uid);
+
         await db.runTransaction(async (tx) => {
             const userDoc = await tx.get(userRef);
             const sessionDoc = await tx.get(sessionRef);
@@ -304,7 +305,6 @@ app.post('/trading/bet', async (c) => {
         });
 
         return c.json({ ok: true, message: `Bet of ${amount} on ${direction} placed successfully.` });
-
     } catch (e: any) {
         console.error("Bet placement failed:", e);
         return c.json({ ok: false, error: e.message || 'bet_placement_failed' }, 500);
@@ -320,18 +320,18 @@ app.post('/trading/bet', async (c) => {
  * distributing spot commissions up the referral chain.
  */
 app.post('/staking/open', async (c) => {
-    const { db } = initializeFirebaseAdmin();
-    const { amount, tier, autoCompound = false } = await c.req.json();
-    const uid = c.get('uid');
-
-    if (!amount || !tier || typeof amount !== 'number' || amount <= 0) {
-        return c.json({ ok: false, error: "invalid_request_payload" }, 400);
-    }
-
-    const settingsRef = db.doc("settings/global");
-    const userRef = db.doc(`users/${uid}`);
-
     try {
+        const { db } = initializeFirebaseAdmin();
+        const { amount, tier, autoCompound = false } = await c.req.json();
+        const uid = c.get('uid');
+
+        if (!amount || !tier || typeof amount !== 'number' || amount <= 0) {
+            return c.json({ ok: false, error: "invalid_request_payload" }, 400);
+        }
+
+        const settingsRef = db.doc("settings/global");
+        const userRef = db.doc(`users/${uid}`);
+
         const stakeId = db.collection("stakes").doc().id;
 
         await db.runTransaction(async (tx) => {
@@ -408,7 +408,6 @@ app.post('/staking/open', async (c) => {
         const dailyPct = settingsData?.staking.packages[tier]?.dailyPct || 0;
         
         return c.json({ ok: true, stakeId, dailyPct });
-
     } catch (e: any) {
         console.error("Staking failed:", e);
         return c.json({ ok: false, error: e.message || "An unexpected error occurred." }, 500);
@@ -418,13 +417,13 @@ app.post('/staking/open', async (c) => {
 
 // --- Founder Routes ---
 app.post('/founder/join', async (c) => {
-    const { db } = initializeFirebaseAdmin();
-    const uid = c.get('uid');
-    const FOUNDER_COST = 5000;
-
-    const userRef = db.doc(`users/${uid}`);
-
     try {
+        const { db } = initializeFirebaseAdmin();
+        const uid = c.get('uid');
+        const FOUNDER_COST = 5000;
+
+        const userRef = db.doc(`users/${uid}`);
+
         await db.runTransaction(async (tx) => {
             const userDoc = await tx.get(userRef);
             if (!userDoc.exists) throw new Error("User not found.");
@@ -458,7 +457,6 @@ app.post('/founder/join', async (c) => {
         });
 
         return c.json({ ok: true, message: "Congratulations! You are now a Founder Member." });
-
     } catch (e: any) {
         console.error("Becoming a founder failed:", e);
         return c.json({ ok: false, error: e.message || "An unexpected error occurred." }, 500);
