@@ -66,21 +66,20 @@ export function SignupForm() {
         await runTransaction(db, async (transaction) => {
             const userRef = doc(db, 'users', user.uid);
             let sponsorPath: string[] = [];
-            let sponsorLevel = 0; // Initialize to 0
+            let sponsorLevel = 0;
 
             if (values.referralId) {
                 const sponsorRef = doc(db, 'users', values.referralId);
                 const sponsorDoc = await transaction.get(sponsorRef);
                 if (sponsorDoc.exists()) {
                     const sponsorData = sponsorDoc.data();
-                    // Ensure referral path exists and is an array before spreading
                     const existingPath = sponsorData.referral?.path;
                     if (Array.isArray(existingPath)) {
                        sponsorPath = [...existingPath, values.referralId];
                     } else {
                        sponsorPath = [values.referralId];
                     }
-                    sponsorLevel = (sponsorData.referral?.level || 0) + 1;
+                    sponsorLevel = sponsorPath.length;
                 } else {
                     console.warn(`Sponsor with ID ${values.referralId} not found.`);
                 }
@@ -96,7 +95,11 @@ export function SignupForm() {
                 balances: { usdt: 0, bnb: 0, phi: 0, reward: 0, commission: 0, trading: 0 },
                 wallets: { usdt_bep20: '', bnb: '', phi: '' },
                 kyc: { status: 'pending', files: [] },
-                referral: { sponsorId: values.referralId || null, path: sponsorPath, level: sponsorLevel },
+                referral: { 
+                  sponsorId: values.referralId || null, 
+                  path: sponsorPath, 
+                  level: sponsorLevel 
+                },
                 teamStats: { directs: 0, total: 0, dailyIncome: 0 }
             });
         });

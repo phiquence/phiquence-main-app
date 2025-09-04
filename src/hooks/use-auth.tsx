@@ -78,12 +78,12 @@ export function UserDataProvider({ children }: { children: React.ReactNode }) {
     const [userData, setUserData] = useState<CombinedUserData | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
-    const [refetchCounter, setRefetchCounter] = useState(0);
-
-    const refetch = () => setRefetchCounter(prev => prev + 1);
 
     useEffect(() => {
-        if (authLoading) return;
+        if (authLoading) {
+            setLoading(true);
+            return;
+        };
         if (!user) {
             setLoading(false);
             setUserData(null);
@@ -104,32 +104,41 @@ export function UserDataProvider({ children }: { children: React.ReactNode }) {
                 }
                 const baseData = userDoc.data() as UserData;
                 
-                // Fetch related collections in parallel for maximum speed
+                // Initialize with base data and empty arrays
+                const combinedData: CombinedUserData = {
+                    ...baseData,
+                    transactions: [],
+                    stakes: [],
+                    network: [],
+                    commissions: [],
+                };
+
                 const transactionsQuery = query(collection(db, "transactions"), where("userId", "==", user.uid), orderBy("createdAt", "desc"), limit(50));
                 const stakesQuery = query(collection(db, "stakes"), where("userId", "==", user.uid), where("status", "==", "active"), orderBy("startAt", "desc"));
                 const networkQuery = query(collection(db, "affiliateNetworks", user.uid, "members"), orderBy("joinDate", "desc"));
                 const commissionsQuery = query(collection(db, "payouts"), where("toUserId", "==", user.uid), orderBy("createdAt", "desc"), limit(50));
                 
                 const unsubTransactions = onSnapshot(transactionsQuery, (snap) => {
-                    const transactions = snap.docs.map(d => ({id: d.id, ...d.data()}) as Transaction);
-                    setUserData(prev => ({ ...prev, ...baseData, transactions }));
+                    combinedData.transactions = snap.docs.map(d => ({id: d.id, ...d.data()}) as Transaction);
+                    setUserData({...combinedData});
                 });
 
                 const unsubStakes = onSnapshot(stakesQuery, (snap) => {
-                    const stakes = snap.docs.map(d => ({id: d.id, ...d.data()}) as Stake);
-                     setUserData(prev => ({ ...prev, ...baseData, stakes }));
+                    combinedData.stakes = snap.docs.map(d => ({id: d.id, ...d.data()}) as Stake);
+                    setUserData({...combinedData});
                 });
 
                 const unsubNetwork = onSnapshot(networkQuery, (snap) => {
-                    const network = snap.docs.map(d => ({id: d.id, ...d.data()}) as AffiliateMember);
-                     setUserData(prev => ({ ...prev, ...baseData, network }));
+                    combinedData.network = snap.docs.map(d => ({id: d.id, ...d.data()}) as AffiliateMember);
+                     setUserData({...combinedData});
                 });
 
                 const unsubCommissions = onSnapshot(commissionsQuery, (snap) => {
-                    const commissions = snap.docs.map(d => ({id: d.id, fromUser: d.data().fromUserName, ...d.data()}) as CommissionLog);
-                     setUserData(prev => ({ ...prev, ...baseData, commissions }));
+                    combinedData.commissions = snap.docs.map(d => ({id: d.id, fromUser: d.data().fromUserName, ...d.data()}) as CommissionLog);
+                     setUserData({...combinedData});
                 });
                 
+                setUserData(combinedData);
                 setLoading(false);
 
                 return () => {
@@ -150,7 +159,7 @@ export function UserDataProvider({ children }: { children: React.ReactNode }) {
             unsubscribeUser();
         };
 
-    }, [user, authLoading, refetchCounter]);
+    }, [user, authLoading]);
 
     const value = {
         userData,
