@@ -1,3 +1,4 @@
+
 import Link from 'next/link';
 import Image from 'next/image';
 import {
@@ -36,13 +37,6 @@ const marketData = [
   { symbol: 'BNB', price: '590.12', change: '-0.50%', iconColor: 'text-yellow-400' },
   { symbol: 'USDT', price: '1.00', change: '+0.01%', iconColor: 'text-green-500' },
   { symbol: 'PHI', price: '0.15', change: '+5.78%', iconColor: 'text-primary' },
-];
-
-const stakingPackages = [
-  { name: 'Harmony', daily: '0.5%', min: 100, max: 999, icon: HeartHandshake, href: { pathname: '/app/staking', query: { package: 'harmony' } } },
-  { name: 'Proportion', daily: '0.75%', min: 1000, max: 4999, icon: Scale, href: { pathname: '/app/staking', query: { package: 'proportion' } } },
-  { name: 'Divine', daily: '1.0%', min: 5000, max: 9999, icon: Zap, href: { pathname: '/app/staking', query: { package: 'divine' } } },
-  { name: 'Infinity', daily: '1.25%', min: 10000, max: '∞', icon: InfinityIcon, href: { pathname: '/app/staking', query: { package: 'infinity' } } },
 ];
 
 const howItWorksSteps = [
@@ -94,7 +88,6 @@ export default function Home() {
       <main className="flex-1">
         <HeroSection />
         <MarketTicker />
-        <StakingSection />
         <HowItWorksSection />
         <ReferralSection />
         <FaqSection />
@@ -124,7 +117,6 @@ function Header() {
               <SheetContent side="left" className="pr-0">
                 <div className="flex flex-col space-y-4 p-6">
                   <Logo />
-                  <Link href="#staking" className="text-lg font-medium">Staking</Link>
                   <Link href="#how-it-works" className="text-lg font-medium">How it Works</Link>
                   <Link href="#referral" className="text-lg font-medium">Affiliate</Link>
                    <Link href="#faq" className="text-lg font-medium">FAQs</Link>
@@ -143,7 +135,6 @@ function Header() {
 
 
           <nav className="hidden md:flex items-center gap-4">
-             <Link href="#staking" className="font-medium text-sm transition-colors hover:text-primary">Staking</Link>
              <Link href="#how-it-works" className="font-medium text-sm transition-colors hover:text-primary">How it Works</Link>
              <Link href="#referral" className="font-medium text-sm transition-colors hover:text-primary">Affiliate</Link>
              <Link href="#faq" className="font-medium text-sm transition-colors hover:text-primary">FAQs</Link>
@@ -218,47 +209,6 @@ function MarketTicker() {
             </div>
         </div>
     </div>
-  );
-}
-
-
-function StakingSection() {
-  return (
-    <section id="staking" className="w-full py-12 md:py-24 lg:py-32 bg-secondary/50 px-[5vw]">
-      <div className="container space-y-12">
-        <div className="flex flex-col items-center justify-center space-y-4 text-center">
-          <div className="space-y-2">
-             <p className="text-primary font-semibold">STAKING</p>
-            <h2 className="text-3xl font-bold tracking-tighter sm:text-5xl font-headline">Flexible Staking Packages</h2>
-            <p className="max-w-[900px] text-muted-foreground md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed">
-              Find the perfect plan to grow your assets. All packages feature a 365-day term with optional auto-compounding for maximized returns.
-            </p>
-          </div>
-        </div>
-        <div className="mx-auto grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-4">
-          {stakingPackages.map((pkg) => (
-            <Card key={pkg.name} className="flex flex-col rounded-xl overflow-hidden shadow-lg hover:shadow-2xl transition-shadow duration-300">
-              <CardHeader className="items-center pb-4 bg-muted/30">
-                <div className="p-4 bg-primary/10 rounded-full mb-3">
-                    <pkg.icon className="h-10 w-10 text-primary" />
-                </div>
-                <CardTitle className="text-2xl">{pkg.name}</CardTitle>
-              </CardHeader>
-              <CardContent className="flex flex-col flex-grow items-center text-center space-y-4 p-6">
-                <p className="text-5xl font-bold text-accent">{pkg.daily}</p>
-                <p className="text-sm text-muted-foreground -mt-3">Daily Reward</p>
-                <p className="text-lg font-medium">
-                  ${pkg.min} - ${pkg.max === '∞' ? 'Unlimited' : pkg.max}
-                </p>
-                <Button asChild className="mt-auto w-full bg-accent hover:bg-accent/90 text-accent-foreground">
-                    <Link href={pkg.href}>Select Package</Link>
-                </Button>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      </div>
-    </section>
   );
 }
 
