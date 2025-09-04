@@ -27,9 +27,8 @@ import { Logo } from "@/components/logo";
 import { Button } from '../ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import Link from 'next/link';
-import { useAuth } from '@/hooks/use-auth';
+import { useAuth, useUserData } from '@/hooks/use-auth';
 import { useState, useEffect } from 'react';
-import { getUserData, UserData } from '@/services/user.service';
 
 
 const menuItems = [
@@ -45,14 +44,7 @@ const menuItems = [
 export function AppSidebar() {
     const pathname = usePathname();
     const { user, logout } = useAuth();
-    const [userData, setUserData] = useState<UserData | null>(null);
-
-     useEffect(() => {
-        if (user) {
-            const unsubscribe = getUserData(user.uid, setUserData, () => {});
-            return () => unsubscribe();
-        }
-    }, [user]);
+    const { userData } = useUserData();
 
     const isFounder = (userData as any)?.isFounder || false;
 
