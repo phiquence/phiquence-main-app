@@ -4,7 +4,6 @@
 import { useState, useEffect } from 'react';
 import { useUserData } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
-import { AffiliateStats, AffiliateMember, CommissionLog } from '@/services/affiliate.service';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -32,7 +31,7 @@ function StatCard({ icon: Icon, title, value, footer }: { icon: React.ElementTyp
 }
 
 export default function AffiliatePage() {
-  const { user, affiliateStats, affiliateNetwork, commissionHistory, loading, error } = useUserData();
+  const { user, userData, loading, error } = useUserData();
   const { toast } = useToast();
   const [copied, setCopied] = useState(false);
   const [referralLink, setReferralLink] = useState('');
@@ -76,7 +75,7 @@ export default function AffiliatePage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center">
+      <div className="flex items-center justify-center h-full">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
@@ -104,9 +103,9 @@ export default function AffiliatePage() {
       </header>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        <StatCard icon={Users} title="Total Referrals" value={affiliateStats?.totalReferrals || 0} footer="Your entire network" />
-        <StatCard icon={DollarSign} title="Total Commission" value={formatCurrency(affiliateStats?.totalCommission || 0)} footer="Earnings from all levels" />
-        <StatCard icon={Award} title="Current Rank" value={affiliateStats?.rank || 'Beginner'} footer="Unlock more benefits" />
+        <StatCard icon={Users} title="Total Referrals" value={userData?.teamStats?.total || 0} footer="Your entire network" />
+        <StatCard icon={DollarSign} title="Total Commission" value={formatCurrency(userData?.balances?.commission || 0)} footer="Earnings from all levels" />
+        <StatCard icon={Award} title="Current Rank" value={userData?.rank || 'Beginner'} footer="Unlock more benefits" />
       </div>
 
       <Card>
@@ -148,8 +147,8 @@ export default function AffiliatePage() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {affiliateNetwork.length > 0 ? (
-                        affiliateNetwork.map(member => (
+                      {userData?.network?.length > 0 ? (
+                        userData.network.map(member => (
                           <TableRow key={member.id}>
                             <TableCell className="font-medium">{member.name}</TableCell>
                             <TableCell>
@@ -185,8 +184,8 @@ export default function AffiliatePage() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {commissionHistory.length > 0 ? (
-                        commissionHistory.map(log => (
+                      {userData?.commissions?.length > 0 ? (
+                        userData.commissions.map(log => (
                           <TableRow key={log.id}>
                             <TableCell className="font-medium text-green-500">{formatCurrency(log.amount)}</TableCell>
                             <TableCell>{log.fromUser}</TableCell>

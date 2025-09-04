@@ -12,7 +12,7 @@ import { Web3Deposit } from '@/components/app/web3-deposit';
 
 
 export default function WalletPage() {
-  const { userData, transactions, loading, error } = useUserData();
+  const { userData, loading, error } = useUserData();
   
   const formatCurrency = (amount: number = 0) => {
     return new Intl.NumberFormat('en-US', {
@@ -32,7 +32,7 @@ export default function WalletPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center">
+      <div className="flex items-center justify-center h-full">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
@@ -131,8 +131,8 @@ export default function WalletPage() {
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {transactions.length > 0 ? (
-                                    transactions.map(tx => (
+                                {userData?.transactions?.length > 0 ? (
+                                    userData.transactions.map(tx => (
                                         <TableRow key={tx.id}>
                                             <TableCell className="capitalize flex items-center gap-2">
                                                 {getTransactionIcon(tx.type)}

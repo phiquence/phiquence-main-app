@@ -34,7 +34,7 @@ const stakingFormSchema = z.object({
 type StakingFormValues = z.infer<typeof stakingFormSchema>;
 
 export default function StakingPage() {
-  const { user, userData, activeStakes, loading, error } = useUserData();
+  const { user, userData, loading, error } = useUserData();
   const { toast } = useToast();
   const [selectedPackage, setSelectedPackage] = useState(stakingPackages[0]);
   const [searchParams, setSearchParams] = useState<URLSearchParams | null>(null);
@@ -118,7 +118,7 @@ export default function StakingPage() {
       </header>
 
       {loading ? (
-        <div className="flex items-center justify-center">
+        <div className="flex items-center justify-center h-full">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
         </div>
       ) : error ? (
@@ -249,8 +249,8 @@ export default function StakingPage() {
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {activeStakes.length > 0 ? (
-                                    activeStakes.map(stake => (
+                                {userData?.stakes?.length > 0 ? (
+                                    userData.stakes.map(stake => (
                                         <TableRow key={stake.id}>
                                             <TableCell className="capitalize font-medium">
                                               {stake.tier}
