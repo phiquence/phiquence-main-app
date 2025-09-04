@@ -179,14 +179,13 @@ function HeroSection() {
             </Button>
           </div>
         </div>
-        <div className="relative aspect-square">
-            <Image
-            src="https://picsum.photos/500/500"
-            fill
-            alt="Phiquence Logo"
-            data-ai-hint="logo"
-            className="object-contain"
-            />
+        <div className="flex items-center justify-center">
+          <div className="flex flex-col items-center gap-4">
+            <CircleDollarSign className="h-40 w-40 text-primary drop-shadow-lg" />
+            <span className="text-5xl font-bold tracking-tighter text-foreground">
+                PHIQUENCE
+            </span>
+          </div>
         </div>
       </div>
     </section>
