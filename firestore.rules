@@ -1,69 +1,58 @@
 rules_version = '2';
-
 service cloud.firestore {
   match /databases/{database}/documents {
-  
-    // Helper function to check if a user is signed in and is the owner of a document
-    function isOwner(userId) {
-      return request.auth != null && request.auth.uid == userId;
-    }
-
-    // Settings are public to read for all users, but write is disallowed
-    match /settings/global {
-      allow read: if true;
-      allow write: if false; 
-    }
-
-    // Users collection:
-    // - Anyone can create a user document (for sign-up)
-    // - Only the owner can read or update their own document
+    // Users can only read and write to their own document. Anyone can create a user.
     match /users/{userId} {
-      allow create: if true;
-      allow read, update: if isOwner(userId);
-      allow delete: if false; // Generally, don't allow clients to delete users
+      allow read, update: if request.auth != null && request.auth.uid == userId;
+      allow create: if request.auth != null;
     }
 
-    // Stakes collection:
-    // - Users can create stakes for themselves
-    // - Users can only read stakes that belong to them
+    // Public settings readable by anyone
+    match /settings/global {
+    	allow get: if true;
+      allow write: if false; // Nobody can write from the client
+    }
+    
+    // Stakes: Users can create and read their own stakes
     match /stakes/{stakeId} {
-      allow create: if isOwner(request.resource.data.userId);
-      allow read: if isOwner(resource.data.userId);
-      allow update, delete: if false; // Logic handled by backend/transactions
+      // allow reading a list of stakes if the query is for the user's own stakes
+      allow list: if request.auth != null && request.query.filters.userId == request.auth.uid;
+      // allow reading a single stake doc if it belongs to the user
+      allow get: if request.auth != null && resource.data.userId == request.auth.uid;
+      allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
+      allow update, delete: if false; // Stakes cannot be changed from client
     }
-
-    // Transactions collection:
-    // - Users can create transactions for themselves
-    // - Users can only read transactions that belong to them
-    match /transactions/{txId} {
-       allow create: if isOwner(request.resource.data.userId);
-       allow read: if isOwner(resource.data.userId);
+    
+    // Transactions: Users can create and read their own transactions
+    match /transactions/{transactionId} {
+       allow list: if request.auth != null && request.query.filters.userId == request.auth.uid;
+       allow get: if request.auth != null && resource.data.userId == request.auth.uid;
+       allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
        allow update, delete: if false;
     }
     
-    // Payouts (Commissions) collection:
-    // - Users can only read payouts directed to them
+     // Payouts: Users can only read payouts made to them
     match /payouts/{payoutId} {
-      allow read: if isOwner(resource.data.toUserId);
-      allow create, update, delete: if false; // Created by backend logic
+        allow list: if request.auth != null && request.query.filters.toUserId == request.auth.uid;
+        allow get: if request.auth != null && resource.data.toUserId == request.auth.uid;
+        allow create, update, delete: if false; // Payouts are created by server
     }
     
-    // Affiliate Network sub-collection:
-    // - A user can read the members list of their own network
+    // Affiliate Network: Users can read their own network members
     match /affiliateNetworks/{userId}/members/{memberId} {
-       allow read: if isOwner(userId);
-       allow write: if false;
+       allow list, get: if request.auth != null && request.auth.uid == userId;
+       allow write: if false; // Managed by server
     }
     
-    // Trading Sessions:
-    // - Sessions are public to read
-    // - Bets subcollection can be written to by the user, and read by the user
+    // Trading Sessions
     match /tradingSessions/{sessionId} {
-      allow read: if true;
-      allow write: if false; // Only backend can manage sessions
-
+      allow get: if request.auth != null; // Anyone can read session info
+      
+      // Bets: Users can create/update their own bet within a session
       match /bets/{userId} {
-        allow read, write: if isOwner(userId);
+      	allow get: if request.auth != null && request.auth.uid == userId;
+        allow create, update: if request.auth != null && request.auth.uid == userId;
+        allow delete: if false;
       }
     }
   }
