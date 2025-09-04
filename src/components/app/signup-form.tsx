@@ -66,15 +66,21 @@ export function SignupForm() {
         await runTransaction(db, async (transaction) => {
             const userRef = doc(db, 'users', user.uid);
             let sponsorPath: string[] = [];
-            let sponsorLevel = 0;
+            let sponsorLevel = 0; // Initialize to 0
 
             if (values.referralId) {
                 const sponsorRef = doc(db, 'users', values.referralId);
                 const sponsorDoc = await transaction.get(sponsorRef);
                 if (sponsorDoc.exists()) {
                     const sponsorData = sponsorDoc.data();
-                    sponsorPath = sponsorData.referral?.path ? [...sponsorData.referral.path, values.referralId] : [values.referralId];
-                    sponsorLevel = sponsorData.referral?.level + 1 || 1;
+                    // Ensure referral path exists and is an array before spreading
+                    const existingPath = sponsorData.referral?.path;
+                    if (Array.isArray(existingPath)) {
+                       sponsorPath = [...existingPath, values.referralId];
+                    } else {
+                       sponsorPath = [values.referralId];
+                    }
+                    sponsorLevel = (sponsorData.referral?.level || 0) + 1;
                 } else {
                     console.warn(`Sponsor with ID ${values.referralId} not found.`);
                 }
@@ -94,9 +100,6 @@ export function SignupForm() {
                 teamStats: { directs: 0, total: 0, dailyIncome: 0 }
             });
         });
-
-        // Background affiliate processing can still be done via a backend function if needed
-        // but the core path is now handled in the transaction.
       }
 
       router.push("/app");
