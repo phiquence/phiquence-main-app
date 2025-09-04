@@ -1,15 +1,12 @@
 
 "use client";
 
-import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import { createContext, useContext, useEffect, useState, ReactNode, useCallback } from 'react';
 import { User, onAuthStateChanged, signOut } from 'firebase/auth';
-import { auth, db } from '@/lib/firebase';
+import { auth } from '@/lib/firebase';
 import { useRouter } from 'next/navigation';
-import { doc, onSnapshot, collection, query, where, orderBy, limit, getDocs } from "firebase/firestore";
-import type { UserData } from '@/services/user.service';
-import type { Transaction } from '@/services/wallet.service';
-import type { Stake } from '@/services/staking.service';
-import type { AffiliateMember, CommissionLog } from '@/services/affiliate.service';
+import { getUserData, CombinedUserData } from '@/services/user.service';
+
 
 // --- Auth Context ---
 interface AuthContextType {
@@ -57,97 +54,57 @@ export function useAuth() {
 
 
 // --- User Data Context ---
-// This new UserData type combines all related data into one structure
-// to be fetched in a more optimized way.
-export interface CombinedUserData extends UserData {
-    transactions: Transaction[];
-    stakes: Stake[];
-    network: AffiliateMember[];
-    commissions: CommissionLog[];
-}
-
-
 interface UserDataContextType {
-    user: User | null;
     userData: CombinedUserData | null;
     loading: boolean;
     error: string | null;
+    refetch: () => void;
 }
 
 const UserDataContext = createContext<UserDataContextType | undefined>(undefined);
 
-export function UserDataProvider({ children }: { children: React.Node }) {
-    const { user } = useAuth();
+export function UserDataProvider({ children }: { children: React.ReactNode }) {
+    const { user, loading: authLoading } = useAuth();
     const [userData, setUserData] = useState<CombinedUserData | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
-    useEffect(() => {
-        if (!user) {
-            setLoading(false);
-            setUserData(null);
-            return;
-        };
-
+    const fetchUserData = useCallback(async (currentUser: User) => {
         setLoading(true);
         setError(null);
-
-        const userRef = doc(db, "users", user.uid);
-        
-        // A single, powerful listener on the main user document
-        const unsubscribe = onSnapshot(userRef, async (userDoc) => {
-            if (!userDoc.exists()) {
-                setError("User data not found.");
-                setLoading(false);
-                return;
+        try {
+            const data = await getUserData(currentUser.uid);
+            if(data) {
+                setUserData(data);
+            } else {
+                 setError("User data not found.");
             }
-
-            try {
-                const baseData = userDoc.data() as UserData;
-                
-                // Fetch related collections in parallel for maximum speed
-                const [transactionsSnap, stakesSnap, networkSnap, commissionsSnap] = await Promise.all([
-                    getDocs(query(collection(db, "transactions"), where("userId", "==", user.uid), orderBy("createdAt", "desc"), limit(50))),
-                    getDocs(query(collection(db, "stakes"), where("userId", "==", user.uid), where("status", "==", "active"), orderBy("startAt", "desc"))),
-                    getDocs(query(collection(db, "affiliateNetworks", user.uid, "members"), orderBy("joinDate", "desc"))),
-                    getDocs(query(collection(db, "payouts"), where("toUserId", "==", user.uid), orderBy("createdAt", "desc"), limit(50)))
-                ]);
-
-                const combinedData: CombinedUserData = {
-                    ...baseData,
-                    transactions: transactionsSnap.docs.map(d => ({id: d.id, ...d.data()}) as Transaction),
-                    stakes: stakesSnap.docs.map(d => ({id: d.id, ...d.data()}) as Stake),
-                    network: networkSnap.docs.map(d => ({id: d.id, ...d.data()}) as AffiliateMember),
-                    commissions: commissionsSnap.docs.map(d => ({id: d.id, fromUser: d.data().fromUserName, ...d.data()}) as CommissionLog),
-                };
-
-                setUserData(combinedData);
-                
-            } catch (e: any) {
-                console.error("Failed to fetch related user data:", e);
-                setError("Could not load all user data. Please refresh.");
-            } finally {
-                setLoading(false);
-            }
-
-        }, (err) => {
-            console.error("User data listener error:", err);
-            setError("An error occurred while fetching user data.");
+        } catch (e: any) {
+            console.error("Failed to fetch user data:", e);
+            setError("Could not load user data. Please refresh.");
+        } finally {
             setLoading(false);
-        });
+        }
+    }, []);
 
-
-        return () => {
-            unsubscribe();
-        };
-
-    }, [user]);
+    useEffect(() => {
+        if (authLoading) {
+            setLoading(true);
+            return;
+        }
+        if (user) {
+            fetchUserData(user);
+        } else {
+            setLoading(false);
+            setUserData(null);
+        }
+    }, [user, authLoading, fetchUserData]);
 
     const value = {
-        user,
         userData,
         loading,
-        error
+        error,
+        refetch: () => user ? fetchUserData(user) : undefined
     };
 
     return <UserDataContext.Provider value={value}>{children}</UserDataContext.Provider>;

@@ -26,22 +26,24 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
   }
   
   return (
-     <UserDataProvider>
-        <div className="bg-background min-h-screen">
-          <SidebarProvider>
-            <AppSidebar />
-            <SidebarInset>
-                <div className="p-4 md:p-8">
-                    {children}
-                </div>
-            </SidebarInset>
-          </SidebarProvider>
-        </div>
-      </UserDataProvider>
+    <div className="bg-background min-h-screen">
+      <SidebarProvider>
+        <AppSidebar />
+        <SidebarInset>
+            <div className="p-4 md:p-8">
+                {children}
+            </div>
+        </SidebarInset>
+      </SidebarProvider>
+    </div>
   )
 }
 
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
-    return <AppLayoutContent>{children}</AppLayoutContent>
+    return (
+      <UserDataProvider>
+        <AppLayoutContent>{children}</AppLayoutContent>
+      </UserDataProvider>
+    )
 }
