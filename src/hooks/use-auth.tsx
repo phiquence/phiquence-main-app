@@ -76,7 +76,7 @@ interface UserDataContextType {
 
 const UserDataContext = createContext<UserDataContextType | undefined>(undefined);
 
-export function UserDataProvider({ children }: { children: React.ReactNode }) {
+export function UserDataProvider({ children }: { children: React.Node }) {
     const { user } = useAuth();
     const [userData, setUserData] = useState<CombinedUserData | null>(null);
     const [loading, setLoading] = useState(true);
@@ -118,7 +118,7 @@ export function UserDataProvider({ children }: { children: React.ReactNode }) {
                     transactions: transactionsSnap.docs.map(d => ({id: d.id, ...d.data()}) as Transaction),
                     stakes: stakesSnap.docs.map(d => ({id: d.id, ...d.data()}) as Stake),
                     network: networkSnap.docs.map(d => ({id: d.id, ...d.data()}) as AffiliateMember),
-                    commissions: commissionsSnap.docs.map(d => ({id: d.id, ...d.data()}) as CommissionLog),
+                    commissions: commissionsSnap.docs.map(d => ({id: d.id, fromUser: d.data().fromUserName, ...d.data()}) as CommissionLog),
                 };
 
                 setUserData(combinedData);

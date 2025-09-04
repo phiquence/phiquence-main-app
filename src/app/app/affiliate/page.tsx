@@ -62,13 +62,20 @@ export default function AffiliatePage() {
      }
   }
   
-  const formatCurrency = (amount: number) => {
+  const formatCurrency = (amount: number = 0) => {
     return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount);
   };
   
   const formatDate = (timestamp: any) => {
     if (timestamp && typeof timestamp.toDate === 'function') {
         return format(timestamp.toDate(), 'PP');
+    }
+     if (timestamp) { // Fallback for serialized data
+      try {
+        return format(new Date(timestamp.seconds * 1000), 'PP');
+      } catch (e) {
+        return 'Invalid Date';
+      }
     }
     return 'N/A';
   }
@@ -147,7 +154,7 @@ export default function AffiliatePage() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {userData?.network?.length > 0 ? (
+                      {userData?.network && userData.network.length > 0 ? (
                         userData.network.map(member => (
                           <TableRow key={member.id}>
                             <TableCell className="font-medium">{member.name}</TableCell>
@@ -184,12 +191,12 @@ export default function AffiliatePage() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {userData?.commissions?.length > 0 ? (
+                      {userData?.commissions && userData.commissions.length > 0 ? (
                         userData.commissions.map(log => (
                           <TableRow key={log.id}>
                             <TableCell className="font-medium text-green-500">{formatCurrency(log.amount)}</TableCell>
-                            <TableCell>{log.fromUser}</TableCell>
-                            <TableCell>{formatDate(log.date)}</TableCell>
+                            <TableCell>{log.fromUser || 'A network member'}</TableCell>
+                            <TableCell>{formatDate(log.createdAt)}</TableCell>
                           </TableRow>
                         ))
                       ) : (
