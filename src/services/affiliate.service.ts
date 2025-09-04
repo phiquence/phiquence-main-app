@@ -24,7 +24,7 @@ export interface CommissionLog {
     amount: number;
     fromUser: string;
     level: number;
-    date: any; // Using 'any' for Firebase ServerTimestamp
+    createdAt: any; // Using 'any' for Firebase ServerTimestamp
 }
 
 // Get affiliate stats with a real-time listener
@@ -100,28 +100,4 @@ export const getCommissionHistory = (
     });
     
     return unsubscribe;
-};
-
-// This function will now call our backend API instead of firestore directly
-export const addAffiliate = async (token: string, referralId: string, newUserName: string): Promise<void> => {
-    // This function is now mostly illustrative as the core logic is on the backend.
-    // However, we might keep it to call a potential future API endpoint.
-    console.log("Referral process initiated for user:", newUserName, "with referrer:", referralId);
-    // In a real scenario, you might have an API call here:
-    /*
-    const response = await fetch('/api/affiliate/add', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({ referralId, newUserName })
-    });
-
-    const data = await response.json();
-
-    if (!response.ok) {
-        console.error(data.error || 'Failed to add affiliate.');
-    }
-    */
 };

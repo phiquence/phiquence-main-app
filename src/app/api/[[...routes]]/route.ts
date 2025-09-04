@@ -134,7 +134,7 @@ app.post('/wallet/webhook', async (c) => {
 
         if (userQuery.empty) {
             // If no user is found by wallet, maybe check the memo/note field in a real implementation
-            return cjson({ ok: false, error: "user_not_found" }, 404);
+            return c.json({ ok: false, error: "user_not_found" }, 404);
         }
 
         const userDoc = userQuery.docs[0];
@@ -255,6 +255,59 @@ app.post('/trading/join', async (c) => {
 
     } catch (e: any) {
         return c.json({ ok: false, error: e.message || "Failed to join trading hub." }, 500);
+    }
+});
+
+/**
+ * Route: POST /api/trading/bet
+ * Allows a user to place a bet in a trading session.
+ */
+app.post('/trading/bet', async (c) => {
+    const { db } = initializeFirebaseAdmin();
+    const { sessionId, direction, amount } = await c.req.json();
+    const uid = c.get('uid');
+
+    if (!sessionId || !direction || !amount || (direction !== 'rise' && direction !== 'fall') || amount <= 0) {
+        return c.json({ ok: false, error: 'invalid_payload' }, 400);
+    }
+
+    const userRef = db.doc(`users/${uid}`);
+    const sessionRef = db.doc(`tradingSessions/${sessionId}`);
+    const betRef = db.collection(`tradingSessions/${sessionId}/bets`).doc(uid);
+
+    try {
+        await db.runTransaction(async (tx) => {
+            const userDoc = await tx.get(userRef);
+            const sessionDoc = await tx.get(sessionRef);
+
+            if (!userDoc.exists) throw new Error("user_not_found");
+            if (!sessionDoc.exists) throw new Error("session_not_found");
+
+            const userData = userDoc.data()!;
+            const sessionData = sessionDoc.data()!;
+
+            if (sessionData.status !== 'open') throw new Error("session_closed");
+            if ((userData.balances?.trading || 0) < amount) {
+                throw new Error("insufficient_trading_balance");
+            }
+            
+            // Deduct from trading balance
+            tx.update(userRef, { 'balances.trading': admin.firestore.FieldValue.increment(-amount) });
+            
+            // Place the bet (overwrite previous bet in same session)
+            tx.set(betRef, {
+                userId: uid,
+                direction,
+                amount,
+                placedAt: admin.firestore.FieldValue.serverTimestamp()
+            });
+        });
+
+        return c.json({ ok: true, message: `Bet of ${amount} on ${direction} placed successfully.` });
+
+    } catch (e: any) {
+        console.error("Bet placement failed:", e);
+        return c.json({ ok: false, error: e.message || 'bet_placement_failed' }, 500);
     }
 });
 
@@ -418,4 +471,3 @@ export const GET = handle(app);
 export const POST = handle(app);
 export const PUT = handle(app);
 export const DELETE = handle(app);
-

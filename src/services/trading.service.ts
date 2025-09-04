@@ -21,7 +21,7 @@ export const joinTradingHub = async (token: string) => {
 };
 
 // This function will now call our backend API
-export const placeBet = async (token: string, sessionId: string, direction: 'rise' | 'fall', amount: number) => {
+export const placeBet = async (token: string, sessionId: string, direction: 'rise' | 'fall', amount: number): Promise<{ok: boolean, message: string}> => {
     const response = await fetch('/api/trading/bet', {
         method: 'POST',
         headers: {
