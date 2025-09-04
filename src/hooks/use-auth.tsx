@@ -69,42 +69,43 @@ export function UserDataProvider({ children }: { children: React.ReactNode }) {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
-    const fetchUserData = useCallback(async (currentUser: User) => {
+    const fetchUserData = useCallback(async () => {
+        if (!user) {
+            setUserData(null);
+            setLoading(false);
+            return;
+        }
+
         setLoading(true);
         setError(null);
         try {
-            const data = await getUserData(currentUser.uid);
-            if(data) {
+            const data = await getUserData(user.uid);
+            if (data) {
                 setUserData(data);
             } else {
-                 setError("User data not found.");
+                 setError("User data not found for this account.");
             }
         } catch (e: any) {
             console.error("Failed to fetch user data:", e);
-            setError("Could not load user data. Please refresh.");
+            setError("Could not load user data. Please try refreshing the page.");
         } finally {
             setLoading(false);
         }
-    }, []);
+    }, [user]);
 
     useEffect(() => {
         if (authLoading) {
             setLoading(true);
             return;
         }
-        if (user) {
-            fetchUserData(user);
-        } else {
-            setLoading(false);
-            setUserData(null);
-        }
+        fetchUserData();
     }, [user, authLoading, fetchUserData]);
 
     const value = {
         userData,
         loading,
         error,
-        refetch: () => user ? fetchUserData(user) : undefined
+        refetch: fetchUserData,
     };
 
     return <UserDataContext.Provider value={value}>{children}</UserDataContext.Provider>;
