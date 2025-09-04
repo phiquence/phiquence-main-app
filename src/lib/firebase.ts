@@ -15,33 +15,13 @@ const firebaseConfig = {
 
 // --- Reliable Initialization ---
 let app: FirebaseApp;
-let appInitialized = false;
-const appInitializationPromise = new Promise<FirebaseApp>((resolve) => {
-    if (getApps().length === 0) {
-        app = initializeApp(firebaseConfig);
-    } else {
-        app = getApp();
-    }
-    appInitialized = true;
-    resolve(app);
-});
-
+if (getApps().length === 0) {
+    app = initializeApp(firebaseConfig);
+} else {
+    app = getApp();
+}
 
 const auth = getAuth(app);
 const db = getFirestore(app);
-
-
-/**
- * Ensures that any action depending on Firebase is executed only after
- * the app is fully initialized.
- * @param callback The function to execute after initialization.
- */
-export async function onInit<T>(callback: () => T): Promise<T> {
-    if (appInitialized) {
-        return callback();
-    }
-    await appInitializationPromise;
-    return callback();
-}
 
 export { app as firebaseApp, auth, db };

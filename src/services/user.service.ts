@@ -2,8 +2,8 @@
 'use client';
 
 import { User, updateProfile, updatePassword, deleteUser } from 'firebase/auth';
-import { doc, getDoc, collection, query, where, orderBy, limit, getDocs, setDoc } from 'firebase/firestore';
-import { db, onInit } from '@/lib/firebase';
+import { doc, getDoc, collection, query, where, orderBy, limit, getDocs, setDoc, onSnapshot } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
 import type { Transaction } from '@/services/wallet.service';
 import type { Stake } from '@/services/staking.service';
 import type { AffiliateMember, CommissionLog } from '@/services/affiliate.service';
@@ -41,48 +41,30 @@ export interface UserData {
     isFounder?: boolean;
 }
 
-export interface CombinedUserData extends UserData {
-    transactions: Transaction[];
-    stakes: Stake[];
-    network: AffiliateMember[];
-    commissions: CommissionLog[];
-}
-
-
-// Function to get a comprehensive snapshot of all user data at once.
-// It now waits for Firebase to be initialized before running.
-export const getUserData = async (userId: string): Promise<CombinedUserData | null> => {
-    return onInit(async () => {
-        const userRef = doc(db, "users", userId);
-        const userDoc = await getDoc(userRef);
-
-        if (!userDoc.exists()) {
-            console.error("No user document found for ID:", userId);
-            // This might happen for a brand new user before their doc is created.
-            // Returning null is appropriate.
-            return null;
+// Get user data with a real-time listener.
+export const getUserData = (
+    userId: string,
+    callback: (data: UserData | null) => void,
+    onError: (error: Error) => void
+): (() => void) => {
+    const userRef = doc(db, "users", userId);
+    
+    const unsubscribe = onSnapshot(userRef, 
+        (docSnap) => {
+            if (docSnap.exists()) {
+                callback(docSnap.data() as UserData);
+            } else {
+                console.error("No user document found for ID:", userId);
+                callback(null); // Explicitly send null if no document
+            }
+        }, 
+        (error) => {
+            console.error("Error fetching user data:", error);
+            onError(error);
         }
+    );
 
-        const baseData = userDoc.data() as UserData;
-
-        // Fetch related collections in parallel for maximum speed
-        const [transactionsSnap, stakesSnap, networkSnap, commissionsSnap] = await Promise.all([
-            getDocs(query(collection(db, "transactions"), where("userId", "==", userId), orderBy("createdAt", "desc"), limit(50))),
-            getDocs(query(collection(db, "stakes"), where("userId", "==", userId), where("status", "==", "active"), orderBy("startAt", "desc"))),
-            getDocs(query(collection(db, "affiliateNetworks", userId, "members"), orderBy("joinDate", "desc"))),
-            getDocs(query(collection(db, "payouts"), where("toUserId", "==", userId), orderBy("createdAt", "desc"), limit(50)))
-        ]);
-
-        const combinedData: CombinedUserData = {
-            ...baseData,
-            transactions: transactionsSnap.docs.map(d => ({id: d.id, ...d.data()}) as Transaction),
-            stakes: stakesSnap.docs.map(d => ({id: d.id, ...d.data()}) as Stake),
-            network: networkSnap.docs.map(d => ({id: d.id, ...d.data()}) as AffiliateMember),
-            commissions: commissionsSnap.docs.map(d => ({id: d.id, fromUser: d.data().fromUserName, ...d.data()}) as CommissionLog),
-        };
-        
-        return combinedData;
-    });
+    return unsubscribe;
 };
 
 
