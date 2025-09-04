@@ -178,45 +178,49 @@ export default function WalletPage() {
           </CardContent>
         </Card>
         
-        <Card className="lg:col-span-2">
-            <CardHeader>
-                <CardTitle>Transaction History</CardTitle>
-                <CardDescription>Your recent deposits and withdrawals.</CardDescription>
-            </CardHeader>
-            <CardContent>
-                <Table>
-                    <TableHeader>
-                        <TableRow>
-                            <TableHead>Type</TableHead>
-                            <TableHead>Amount</TableHead>
-                            <TableHead>Status</TableHead>
-                            <TableHead>Date</TableHead>
-                        </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                        {transactions.length > 0 ? (
-                            transactions.map(tx => (
-                                <TableRow key={tx.id}>
-                                    <TableCell className="capitalize flex items-center gap-2">
-                                        {getTransactionIcon(tx.type)}
-                                        {tx.type.replace('_', ' ')}
-                                    </TableCell>
-                                    <TableCell className={getTransactionColor(tx.type)}>{tx.amount} {tx.currency}</TableCell>
-                                     <TableCell className="capitalize">
-                                        <Badge variant={tx.status === 'confirmed' ? 'default' : 'secondary'}>{tx.status}</Badge>
-                                     </TableCell>
-                                    <TableCell>{formatDate(tx.createdAt)}</TableCell>
+        <div className="lg:col-span-2">
+            <Card>
+                <CardHeader>
+                    <CardTitle>Transaction History</CardTitle>
+                    <CardDescription>Your recent deposits and withdrawals.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <div className="overflow-x-auto">
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead>Type</TableHead>
+                                    <TableHead>Amount</TableHead>
+                                    <TableHead>Status</TableHead>
+                                    <TableHead>Date</TableHead>
                                 </TableRow>
-                            ))
-                        ) : (
-                            <TableRow>
-                                <TableCell colSpan={4} className="text-center text-muted-foreground h-24">No transactions yet.</TableCell>
-                            </TableRow>
-                        )}
-                    </TableBody>
-                </Table>
-            </CardContent>
-        </Card>
+                            </TableHeader>
+                            <TableBody>
+                                {transactions.length > 0 ? (
+                                    transactions.map(tx => (
+                                        <TableRow key={tx.id}>
+                                            <TableCell className="capitalize flex items-center gap-2">
+                                                {getTransactionIcon(tx.type)}
+                                                {tx.type.replace('_', ' ')}
+                                            </TableCell>
+                                            <TableCell className={getTransactionColor(tx.type)}>{tx.amount} {tx.currency}</TableCell>
+                                             <TableCell className="capitalize">
+                                                <Badge variant={tx.status === 'confirmed' ? 'default' : 'secondary'}>{tx.status}</Badge>
+                                             </TableCell>
+                                            <TableCell>{formatDate(tx.createdAt)}</TableCell>
+                                        </TableRow>
+                                    ))
+                                ) : (
+                                    <TableRow>
+                                        <TableCell colSpan={4} className="text-center text-muted-foreground h-24">No transactions yet.</TableCell>
+                                    </TableRow>
+                                )}
+                            </TableBody>
+                        </Table>
+                    </div>
+                </CardContent>
+            </Card>
+        </div>
       </div>
     </div>
   );

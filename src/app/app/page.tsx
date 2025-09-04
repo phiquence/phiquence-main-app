@@ -56,8 +56,6 @@ export default function DashboardPage() {
         if (data) {
           setUserData(data);
         } else {
-          // This case might happen temporarily or if the doc is deleted.
-          // Setting an error here can be too aggressive. Let's let it be null.
           setUserData(null);
         }
         setLoading(false);
@@ -79,13 +77,15 @@ export default function DashboardPage() {
   };
   
   const balances = userData?.balances || { usdt: 0, bnb: 0, phi: 0, reward: 0, commission: 0, trading: 0 };
+  const teamStats = (userData as any)?.teamStats || { directs: 0, total: 0, dailyIncome: 0};
+
 
   return (
     <div className="space-y-8">
       <header className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold tracking-tight font-headline">Dashboard</h1>
-          <p className="text-muted-foreground">Welcome back, {loading ? '...' : (userData?.name || 'User')}!</p>
+           <p className="text-muted-foreground">Welcome back, {loading ? <Skeleton className="h-4 w-24 inline-block" /> : (userData?.name || 'User')}!</p>
         </div>
         <div className="flex gap-2">
            <Button variant="outline" asChild>
@@ -109,7 +109,7 @@ export default function DashboardPage() {
         </Card>
       ) : (
         <>
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
                 <StatCard 
                     icon={DollarSign}
                     title="USDT Balance"
@@ -154,7 +154,13 @@ export default function DashboardPage() {
                     <CardDescription>7-day and 30-day reward chart</CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <TradingChart data={[]} />
+                    {loading ? (
+                        <div className="h-[400px] flex items-center justify-center">
+                             <Skeleton className="h-full w-full" />
+                        </div>
+                    ) : (
+                        <TradingChart data={[]} />
+                    )}
                 </CardContent>
             </Card>
         </>
@@ -167,18 +173,28 @@ export default function DashboardPage() {
                   <CardTitle>Team Snapshot</CardTitle>
               </CardHeader>
               <CardContent className="grid grid-cols-3 gap-4 text-center">
-                    <div>
-                        <p className="text-2xl font-bold">0</p>
-                        <p className="text-sm text-muted-foreground">Directs</p>
-                    </div>
-                     <div>
-                        <p className="text-2xl font-bold">0</p>
-                        <p className="text-sm text-muted-foreground">Total Team</p>
-                    </div>
-                     <div>
-                        <p className="text-2xl font-bold text-green-500">{formatCurrency(0)}</p>
-                        <p className="text-sm text-muted-foreground">Today's Income</p>
-                    </div>
+                  {loading ? (
+                      <>
+                        <StatSkeleton />
+                        <StatSkeleton />
+                        <StatSkeleton />
+                      </>
+                  ) : (
+                    <>
+                      <div>
+                          <p className="text-2xl font-bold">{teamStats.directs}</p>
+                          <p className="text-sm text-muted-foreground">Directs</p>
+                      </div>
+                       <div>
+                          <p className="text-2xl font-bold">{teamStats.total}</p>
+                          <p className="text-sm text-muted-foreground">Total Team</p>
+                      </div>
+                       <div>
+                          <p className="text-2xl font-bold text-green-500">{formatCurrency(teamStats.dailyIncome)}</p>
+                          <p className="text-sm text-muted-foreground">Today's Income</p>
+                      </div>
+                    </>
+                  )}
               </CardContent>
               <CardFooter>
                 <Button variant="outline" className="w-full" asChild>
@@ -238,3 +254,10 @@ export default function DashboardPage() {
     </div>
   )
 }
+
+const StatSkeleton = () => (
+    <div>
+        <Skeleton className="h-8 w-1/2 mx-auto mb-2" />
+        <Skeleton className="h-4 w-3/4 mx-auto" />
+    </div>
+);

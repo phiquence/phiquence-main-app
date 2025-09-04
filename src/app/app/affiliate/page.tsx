@@ -53,14 +53,12 @@ export default function AffiliatePage() {
     if (user) {
       const fetchData = async () => {
         try {
-          // These listeners will provide real-time updates
           const unsubscribeStats = getAffiliateStats(user.uid, setStats, (e) => { throw e; });
           const unsubscribeNetwork = getAffiliateNetwork(user.uid, setNetwork, (e) => { throw e; });
           const unsubscribeCommissions = getCommissionHistory(user.uid, setCommissions, (e) => { throw e; });
           
           setLoading(false);
 
-          // Return cleanup functions
           return () => {
             unsubscribeStats();
             unsubscribeNetwork();
@@ -172,32 +170,34 @@ export default function AffiliatePage() {
               <CardDescription>Members you have directly and indirectly referred.</CardDescription>
             </CardHeader>
             <CardContent>
-               <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Member</TableHead>
-                    <TableHead>Level</TableHead>
-                    <TableHead>Join Date</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {network.length > 0 ? (
-                    network.map(member => (
-                      <TableRow key={member.id}>
-                        <TableCell className="font-medium">{member.name}</TableCell>
-                        <TableCell>
-                           <Badge variant="secondary">Level {member.level}</Badge>
-                        </TableCell>
-                        <TableCell>{formatDate(member.joinDate)}</TableCell>
+                <div className="overflow-x-auto">
+                   <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Member</TableHead>
+                        <TableHead>Level</TableHead>
+                        <TableHead>Join Date</TableHead>
                       </TableRow>
-                    ))
-                  ) : (
-                    <TableRow>
-                      <TableCell colSpan={3} className="text-center h-24 text-muted-foreground">Your network is empty. Start sharing your link!</TableCell>
-                    </TableRow>
-                  )}
-                </TableBody>
-              </Table>
+                    </TableHeader>
+                    <TableBody>
+                      {network.length > 0 ? (
+                        network.map(member => (
+                          <TableRow key={member.id}>
+                            <TableCell className="font-medium">{member.name}</TableCell>
+                            <TableCell>
+                               <Badge variant="secondary">Level {member.level}</Badge>
+                            </TableCell>
+                            <TableCell>{formatDate(member.joinDate)}</TableCell>
+                          </TableRow>
+                        ))
+                      ) : (
+                        <TableRow>
+                          <TableCell colSpan={3} className="text-center h-24 text-muted-foreground">Your network is empty. Start sharing your link!</TableCell>
+                        </TableRow>
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
             </CardContent>
           </Card>
           
@@ -207,30 +207,32 @@ export default function AffiliatePage() {
               <CardDescription>Your recent commission earnings.</CardDescription>
             </CardHeader>
             <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Amount</TableHead>
-                    <TableHead>From</TableHead>
-                    <TableHead>Date</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {commissions.length > 0 ? (
-                    commissions.map(log => (
-                      <TableRow key={log.id}>
-                        <TableCell className="font-medium text-green-500">{formatCurrency(log.amount)}</TableCell>
-                        <TableCell>{log.fromUser}</TableCell>
-                        <TableCell>{formatDate(log.date)}</TableCell>
+              <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Amount</TableHead>
+                        <TableHead>From</TableHead>
+                        <TableHead>Date</TableHead>
                       </TableRow>
-                    ))
-                  ) : (
-                     <TableRow>
-                      <TableCell colSpan={3} className="text-center h-24 text-muted-foreground">No commission history yet.</TableCell>
-                    </TableRow>
-                  )}
-                </TableBody>
-              </Table>
+                    </TableHeader>
+                    <TableBody>
+                      {commissions.length > 0 ? (
+                        commissions.map(log => (
+                          <TableRow key={log.id}>
+                            <TableCell className="font-medium text-green-500">{formatCurrency(log.amount)}</TableCell>
+                            <TableCell>{log.fromUser}</TableCell>
+                            <TableCell>{formatDate(log.date)}</TableCell>
+                          </TableRow>
+                        ))
+                      ) : (
+                         <TableRow>
+                          <TableCell colSpan={3} className="text-center h-24 text-muted-foreground">No commission history yet.</TableCell>
+                        </TableRow>
+                      )}
+                    </TableBody>
+                  </Table>
+              </div>
             </CardContent>
           </Card>
       </div>

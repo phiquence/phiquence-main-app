@@ -174,89 +174,92 @@ export default function StakingPage() {
         </Card>
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          <Card className="lg:col-span-2">
-            <CardHeader>
-              <CardTitle>Create a New Stake</CardTitle>
-              <CardDescription>Select a package and enter the amount you want to stake.</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Tabs value={selectedPackage.id} onValueChange={(id) => setSelectedPackage(stakingPackages.find(p => p.id === id)!)} className="w-full">
-                <TabsList className="grid w-full grid-cols-2 md:grid-cols-4">
+          <div className="lg:col-span-2">
+            <Card>
+              <CardHeader>
+                <CardTitle>Create a New Stake</CardTitle>
+                <CardDescription>Select a package and enter the amount you want to stake.</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Tabs value={selectedPackage.id} onValueChange={(id) => setSelectedPackage(stakingPackages.find(p => p.id === id)!)} className="w-full">
+                  <TabsList className="grid w-full grid-cols-2 md:grid-cols-4">
+                    {stakingPackages.map(pkg => (
+                      <TabsTrigger key={pkg.id} value={pkg.id}>{pkg.name}</TabsTrigger>
+                    ))}
+                  </TabsList>
                   {stakingPackages.map(pkg => (
-                    <TabsTrigger key={pkg.id} value={pkg.id}>{pkg.name}</TabsTrigger>
-                  ))}
-                </TabsList>
-                {stakingPackages.map(pkg => (
-                  <TabsContent key={pkg.id} value={pkg.id}>
-                    <div className="p-6 bg-secondary/50 rounded-lg mt-4">
-                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                            <div className="flex items-center gap-4">
-                                <div className="p-3 bg-primary/10 rounded-full">
-                                    <pkg.icon className="h-8 w-8 text-primary" />
-                                </div>
-                                <div>
-                                    <h3 className="text-2xl font-bold">{pkg.name}</h3>
-                                    <p className="text-muted-foreground">Term: 365 days</p>
-                                </div>
-                            </div>
-                             <div className="text-center md:text-right">
-                                <p className="text-3xl font-bold text-accent">{pkg.daily}%</p>
-                                <p className="text-sm text-muted-foreground">Daily Reward</p>
-                             </div>
-                             <div className="text-center md:text-right">
-                                <p className="text-lg font-semibold">{formatCurrency(pkg.min)} - {pkg.max === Infinity ? 'Unlimited' : formatCurrency(pkg.max)}</p>
-                                <p className="text-sm text-muted-foreground">Staking Amount (USDT)</p>
-                             </div>
-                        </div>
-                    </div>
-                    <Form {...form}>
-                      <form onSubmit={form.handleSubmit(handleStake)} className="space-y-6 mt-6">
-                        <FormField
-                          control={form.control}
-                          name="amount"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Amount to Stake (USDT)</FormLabel>
-                              <FormControl>
-                                <Input type="number" placeholder={`e.g., ${pkg.min}`} {...field} />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                         <FormField
-                          control={form.control}
-                          name="autoCompound"
-                          render={({ field }) => (
-                            <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
-                              <div className="space-y-0.5">
-                                <FormLabel className="text-base">
-                                  Auto-compounding
-                                </FormLabel>
-                                <FormDescription>
-                                  Automatically re-stake your daily rewards to maximize returns.
-                                </FormDescription>
+                    <TabsContent key={pkg.id} value={pkg.id}>
+                      <div className="p-6 bg-secondary/50 rounded-lg mt-4">
+                          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                              <div className="flex items-center gap-4">
+                                  <div className="p-3 bg-primary/10 rounded-full">
+                                      <pkg.icon className="h-8 w-8 text-primary" />
+                                  </div>
+                                  <div>
+                                      <h3 className="text-2xl font-bold">{pkg.name}</h3>
+                                      <p className="text-muted-foreground">Term: 365 days</p>
+                                  </div>
                               </div>
-                              <FormControl>
-                                <Switch
-                                  checked={field.value}
-                                  onCheckedChange={field.onChange}
-                                />
-                              </FormControl>
-                            </FormItem>
-                          )}
-                        />
-                        <Button type="submit" size="lg" className="w-full bg-accent hover:bg-accent/90 text-accent-foreground" disabled={form.formState.isSubmitting}>
-                          {form.formState.isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                          Stake Now
-                        </Button>
-                      </form>
-                    </Form>
-                  </TabsContent>
-                ))}
-              </Tabs>
-            </CardContent>
-          </Card>
+                               <div className="text-center md:text-right">
+                                  <p className="text-3xl font-bold text-accent">{pkg.daily}%</p>
+                                  <p className="text-sm text-muted-foreground">Daily Reward</p>
+                               </div>
+                               <div className="text-center md:text-right">
+                                  <p className="text-lg font-semibold">{formatCurrency(pkg.min)} - {pkg.max === Infinity ? 'Unlimited' : formatCurrency(pkg.max)}</p>
+                                  <p className="text-sm text-muted-foreground">Staking Amount (USDT)</p>
+                               </div>
+                          </div>
+                      </div>
+                      <Form {...form}>
+                        <form onSubmit={form.handleSubmit(handleStake)} className="space-y-6 mt-6">
+                          <FormField
+                            control={form.control}
+                            name="amount"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Amount to Stake (USDT)</FormLabel>
+                                <FormControl>
+                                  <Input type="number" placeholder={`e.g., ${pkg.min}`} {...field} />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                           <FormField
+                            control={form.control}
+                            name="autoCompound"
+                            render={({ field }) => (
+                              <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                                <div className="space-y-0.5">
+                                  <FormLabel className="text-base">
+                                    Auto-compounding
+                                  </FormLabel>
+                                  <FormDescription>
+                                    Automatically re-stake your daily rewards to maximize returns.
+                                  </FormDescription>
+                                </div>
+                                <FormControl>
+                                  <Switch
+                                    checked={field.value}
+                                    onCheckedChange={field.onChange}
+                                  />
+                                </FormControl>
+                              </FormItem>
+                            )}
+                          />
+                          <Button type="submit" size="lg" className="w-full bg-accent hover:bg-accent/90 text-accent-foreground" disabled={form.formState.isSubmitting}>
+                            {form.formState.isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                            Stake Now
+                          </Button>
+                        </form>
+                      </Form>
+                    </TabsContent>
+                  ))}
+                </Tabs>
+              </CardContent>
+            </Card>
+          </div>
+
           <div className="space-y-8">
             <Card>
               <CardHeader>
@@ -277,32 +280,34 @@ export default function StakingPage() {
                     <CardDescription>Your ongoing staking activities.</CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead>Package</TableHead>
-                                <TableHead>Amount</TableHead>
-                                <TableHead className="text-right">Accrued</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {activeStakes.length > 0 ? (
-                                activeStakes.map(stake => (
-                                    <TableRow key={stake.id}>
-                                        <TableCell className="capitalize font-medium">
-                                          {stake.tier}
-                                        </TableCell>
-                                        <TableCell>{formatCurrency(stake.amount)}</TableCell>
-                                        <TableCell className="text-right">{formatCurrency(stake.totalAccrued)}</TableCell>
-                                    </TableRow>
-                                ))
-                            ) : (
+                    <div className="overflow-x-auto">
+                        <Table>
+                            <TableHeader>
                                 <TableRow>
-                                    <TableCell colSpan={3} className="text-center text-muted-foreground h-24">You have no active stakes.</TableCell>
+                                    <TableHead>Package</TableHead>
+                                    <TableHead>Amount</TableHead>
+                                    <TableHead className="text-right">Accrued</TableHead>
                                 </TableRow>
-                            )}
-                        </TableBody>
-                    </Table>
+                            </TableHeader>
+                            <TableBody>
+                                {activeStakes.length > 0 ? (
+                                    activeStakes.map(stake => (
+                                        <TableRow key={stake.id}>
+                                            <TableCell className="capitalize font-medium">
+                                              {stake.tier}
+                                            </TableCell>
+                                            <TableCell>{formatCurrency(stake.amount)}</TableCell>
+                                            <TableCell className="text-right">{formatCurrency(stake.totalAccrued)}</TableCell>
+                                        </TableRow>
+                                    ))
+                                ) : (
+                                    <TableRow>
+                                        <TableCell colSpan={3} className="text-center text-muted-foreground h-24">You have no active stakes.</TableCell>
+                                    </TableRow>
+                                )}
+                            </TableBody>
+                        </Table>
+                    </div>
                 </CardContent>
             </Card>
 

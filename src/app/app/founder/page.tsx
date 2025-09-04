@@ -120,16 +120,16 @@ export default function FounderPage() {
                 <Crown className="h-48 w-48 text-yellow-400" />
             </div>
             <div className="relative">
-                <h1 className="text-4xl font-extrabold tracking-tight font-headline mb-4">
+                <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight font-headline mb-4">
                     Join the <span className="text-yellow-400">Founder's Club</span>
                 </h1>
-                <p className="text-lg text-gray-300 max-w-3xl">
+                <p className="text-base sm:text-lg text-gray-300 max-w-3xl">
                     Become a pillar of the Phiquence community and unlock exclusive benefits by becoming a Founder Member. This is a one-time opportunity to secure your legacy.
                 </p>
             </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <BenefitCard icon={Star} title="Priority Access" description="Get early access to new features, staking packages, and investment opportunities before anyone else." />
             <BenefitCard icon={Zap} title="Increased Rewards" description="Receive exclusive airdrops and a permanent boost on specific commission types." />
             <BenefitCard icon={ShieldCheck} title="Governance & Voting" description="Play a key role in the future of Phiquence by voting on major platform decisions." />
@@ -137,13 +137,13 @@ export default function FounderPage() {
         
         <Card className="bg-gray-900/50 border-gray-700 text-white">
             <CardHeader className="text-center">
-                <CardTitle className="text-3xl">Secure Your Founder Status</CardTitle>
+                <CardTitle className="text-2xl sm:text-3xl">Secure Your Founder Status</CardTitle>
                 <CardDescription className="text-gray-400">A one-time contribution of 5,000 USDT.</CardDescription>
             </CardHeader>
             <CardContent className="text-center space-y-4">
                 <div className="p-6 rounded-lg bg-gray-800 border border-gray-700">
                     <p className="text-gray-400">Your Current USDT Balance</p>
-                    <p className={`text-4xl font-bold ${canAfford ? 'text-green-400' : 'text-red-400'}`}>
+                    <p className={`text-3xl sm:text-4xl font-bold ${canAfford ? 'text-green-400' : 'text-red-400'}`}>
                         {formatCurrency(usdtBalance)}
                     </p>
                 </div>
@@ -162,7 +162,7 @@ export default function FounderPage() {
                  <AlertDialog>
                     <AlertDialogTrigger asChild>
                        <Button 
-                            className="w-full h-14 text-xl font-bold bg-gradient-to-r from-yellow-400 to-amber-500 text-black shadow-lg hover:shadow-yellow-400/30 transition-shadow duration-300" 
+                            className="w-full h-12 sm:h-14 text-lg sm:text-xl font-bold bg-gradient-to-r from-yellow-400 to-amber-500 text-black shadow-lg hover:shadow-yellow-400/30 transition-shadow duration-300" 
                             disabled={!canAfford || isProcessing}
                         >
                             {isProcessing ? <Loader2 className="mr-2 h-6 w-6 animate-spin" /> : <Crown className="mr-2" />}
@@ -203,4 +203,3 @@ const BenefitCard = ({ icon: Icon, title, description }: { icon: React.ElementTy
         <p className="text-gray-400 text-sm">{description}</p>
     </Card>
 )
-

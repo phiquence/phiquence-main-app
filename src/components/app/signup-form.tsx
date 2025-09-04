@@ -73,14 +73,18 @@ export function SignupForm() {
             balances: { usdt: 0, bnb: 0, phi: 0, reward: 0, commission: 0, trading: 0 },
             wallets: { usdt_bep20: '', bnb: '', phi: '' },
             kyc: { status: 'pending', files: [] },
-            referral: { sponsorId: values.referralId || null, path: [], level: 0 }
+            referral: { sponsorId: values.referralId || null, path: [], level: 0 },
+            teamStats: { directs: 0, total: 0, dailyIncome: 0 }
         });
 
 
-        // Handle referral ID logic if provided
+        // Handle referral ID logic if provided, but don't wait for it
         if (values.referralId) {
-            const token = await user.getIdToken();
-            await addAffiliate(token, values.referralId, values.name);
+            user.getIdToken().then(token => {
+                addAffiliate(token, values.referralId!, values.name).catch(e => {
+                    console.error("Failed to process affiliate in background", e);
+                });
+            });
         }
       }
 
