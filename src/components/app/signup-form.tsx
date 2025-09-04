@@ -15,7 +15,7 @@ import { Input } from "@/components/ui/input";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from "@/components/ui/form";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Loader2 } from "lucide-react";
-import { doc, serverTimestamp, setDoc } from "firebase/firestore";
+import { doc, serverTimestamp, setDoc, runTransaction, getDoc } from "firebase/firestore";
 
 const formSchema = z.object({
   name: z.string().min(2, { message: "Name must be at least 2 characters." }),
@@ -62,30 +62,41 @@ export function SignupForm() {
             displayName: values.name
         });
 
-        // Create user document in Firestore
-        const userRef = doc(db, 'users', user.uid);
-        await setDoc(userRef, {
-            uid: user.uid,
-            email: values.email,
-            name: values.name,
-            createdAt: serverTimestamp(),
-            rank: 'Beginner',
-            balances: { usdt: 0, bnb: 0, phi: 0, reward: 0, commission: 0, trading: 0 },
-            wallets: { usdt_bep20: '', bnb: '', phi: '' },
-            kyc: { status: 'pending', files: [] },
-            referral: { sponsorId: values.referralId || null, path: [], level: 0 },
-            teamStats: { directs: 0, total: 0, dailyIncome: 0 }
+        // Use a transaction to ensure atomicity
+        await runTransaction(db, async (transaction) => {
+            const userRef = doc(db, 'users', user.uid);
+            let sponsorPath: string[] = [];
+            let sponsorLevel = 0;
+
+            if (values.referralId) {
+                const sponsorRef = doc(db, 'users', values.referralId);
+                const sponsorDoc = await transaction.get(sponsorRef);
+                if (sponsorDoc.exists()) {
+                    const sponsorData = sponsorDoc.data();
+                    sponsorPath = sponsorData.referral?.path ? [...sponsorData.referral.path, values.referralId] : [values.referralId];
+                    sponsorLevel = sponsorData.referral?.level + 1 || 1;
+                } else {
+                    console.warn(`Sponsor with ID ${values.referralId} not found.`);
+                }
+            }
+
+            // Create user document in Firestore
+            transaction.set(userRef, {
+                uid: user.uid,
+                email: values.email,
+                name: values.name,
+                createdAt: serverTimestamp(),
+                rank: 'Beginner',
+                balances: { usdt: 0, bnb: 0, phi: 0, reward: 0, commission: 0, trading: 0 },
+                wallets: { usdt_bep20: '', bnb: '', phi: '' },
+                kyc: { status: 'pending', files: [] },
+                referral: { sponsorId: values.referralId || null, path: sponsorPath, level: sponsorLevel },
+                teamStats: { directs: 0, total: 0, dailyIncome: 0 }
+            });
         });
 
-
-        // Handle referral ID logic if provided, but don't wait for it
-        if (values.referralId) {
-            user.getIdToken().then(token => {
-                addAffiliate(token, values.referralId!, values.name).catch(e => {
-                    console.error("Failed to process affiliate in background", e);
-                });
-            });
-        }
+        // Background affiliate processing can still be done via a backend function if needed
+        // but the core path is now handled in the transaction.
       }
 
       router.push("/app");

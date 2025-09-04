@@ -1,53 +1,19 @@
 
 'use client';
 
-import { useEffect, useState } from 'react';
-import { useAuth } from '@/hooks/use-auth';
-import { getUserData, UserData } from '@/services/user.service';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
+import { useUserData } from '@/hooks/use-auth';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Loader2, AlertTriangle, ArrowUpRight, ArrowDownLeft, MinusSquare, CircleDollarSign, Copy, Users } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
+import { Loader2, AlertTriangle, ArrowUpRight, ArrowDownLeft, MinusSquare, CircleDollarSign, Users } from 'lucide-react';
 import { format } from 'date-fns';
-import { cn } from '@/lib/utils';
-import { getTransactions, Transaction } from '@/services/wallet.service';
+import { getTransactionIcon, getTransactionColor } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { Web3Deposit } from '@/components/app/web3-deposit';
 
 
 export default function WalletPage() {
-  const { user } = useAuth();
-  const { toast } = useToast();
-  const [userData, setUserData] = useState<UserData | null>(null);
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { userData, transactions, loading, error } = useUserData();
   
-  useEffect(() => {
-    if (user) {
-      const unsubscribeUser = getUserData(user.uid, (data) => {
-        setUserData(data);
-        setLoading(false);
-      }, (err) => {
-        console.error(err);
-        setError("Could not fetch user information.");
-        setLoading(false);
-      });
-
-      const unsubscribeTransactions = getTransactions(user.uid, (transactionsData) => {
-        setTransactions(transactionsData);
-      }, (err) => {
-        console.error(err);
-        setError("Could not fetch transaction history.");
-      });
-
-      return () => {
-        unsubscribeUser();
-        unsubscribeTransactions();
-      };
-    }
-  }, [user]);
-
   const formatCurrency = (amount: number = 0) => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
@@ -60,37 +26,6 @@ export default function WalletPage() {
         return format(timestamp.toDate(), 'PPp');
     }
     return 'Invalid Date';
-  }
-
-  const getTransactionIcon = (type: string) => {
-      switch (type) {
-          case 'deposit':
-              return <ArrowDownLeft className="h-4 w-4 text-green-500" />;
-          case 'withdraw':
-              return <ArrowUpRight className="h-4 w-4 text-red-500" />;
-          case 'stake_daily':
-          case 'reward':
-              return <CircleDollarSign className="h-4 w-4 text-yellow-500" />;
-          case 'commission':
-              return <Users className="h-4 w-4 text-blue-500"/>
-          default:
-              return <MinusSquare className="h-4 w-4 text-muted-foreground" />;
-      }
-  }
-
-  const getTransactionColor = (type: string) => {
-        switch (type) {
-            case 'deposit':
-                return 'text-green-500';
-            case 'withdraw':
-                return 'text-red-500';
-            case 'reward':
-            case 'stake_daily':
-            case 'commission':
-                 return 'text-yellow-500';
-            default:
-                return '';
-        }
   }
 
   const balances = userData?.balances;

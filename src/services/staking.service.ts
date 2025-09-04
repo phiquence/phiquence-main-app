@@ -1,7 +1,6 @@
 
 'use client';
 
-import { collection, query, where, orderBy, onSnapshot } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 
 
@@ -17,29 +16,6 @@ export interface Stake {
     startAt: any;
     lastAccruedAt: any;
     totalAccrued: number;
-}
-
-export const getActiveStakes = (
-    userId: string,
-    callback: (stakes: Stake[]) => void,
-    onError: (error: Error) => void
-): (() => void) => {
-    const stakesQuery = query(
-        collection(db, "stakes"), 
-        where("userId", "==", userId),
-        where("status", "==", "active"),
-        orderBy("startAt", "desc")
-    );
-
-    const unsubscribe = onSnapshot(stakesQuery, (querySnapshot) => {
-        const stakes = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Stake));
-        callback(stakes);
-    }, (error) => {
-        console.error("Error fetching active stakes:", error);
-        onError(error);
-    });
-
-    return unsubscribe;
 }
 
 // This function now calls our backend API endpoint

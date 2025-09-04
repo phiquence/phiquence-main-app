@@ -5,25 +5,20 @@ import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { useAuth } from '@/hooks/use-auth';
+import { useUserData } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
-import { openStake, getActiveStakes, Stake } from '@/services/staking.service';
+import { openStake } from '@/services/staking.service';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { Loader2, AlertTriangle, HeartHandshake, Scale, Zap, InfinityIcon, CheckCircle } from 'lucide-react';
+import { Loader2, AlertTriangle, HeartHandshake, Scale, Zap, InfinityIcon } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
 import { Switch } from '@/components/ui/switch';
-import { Label } from '@/components/ui/label';
-import { getUserData, UserData } from '@/services/user.service';
 import Link from 'next/link';
 
-
-// This should reflect settings/global in Firestore
 const stakingPackages = [
   { id: 'Harmony', name: 'Harmony', daily: 0.3, min: 50, max: 499, icon: HeartHandshake },
   { id: 'Proportion', name: 'Proportion', daily: 0.5, min: 500, max: 1999, icon: Scale },
@@ -39,12 +34,8 @@ const stakingFormSchema = z.object({
 type StakingFormValues = z.infer<typeof stakingFormSchema>;
 
 export default function StakingPage() {
-  const { user } = useAuth();
+  const { user, userData, activeStakes, loading, error } = useUserData();
   const { toast } = useToast();
-  const [userData, setUserData] = useState<UserData | null>(null);
-  const [activeStakes, setActiveStakes] = useState<Stake[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [selectedPackage, setSelectedPackage] = useState(stakingPackages[0]);
   const [searchParams, setSearchParams] = useState<URLSearchParams | null>(null);
 
@@ -64,7 +55,6 @@ export default function StakingPage() {
     }
   }, [searchParams]);
 
-
   const form = useForm<StakingFormValues>({
     resolver: zodResolver(stakingFormSchema),
     defaultValues: { amount: selectedPackage.min, autoCompound: true },
@@ -73,37 +63,6 @@ export default function StakingPage() {
   useEffect(() => {
     form.reset({ amount: selectedPackage.min, autoCompound: true });
   }, [selectedPackage, form]);
-
-  useEffect(() => {
-    if (user) {
-      const unsubscribeUser = getUserData(user.uid, 
-        (data) => {
-          setUserData(data);
-          setLoading(false);
-        }, 
-        (err) => {
-          console.error(err);
-          setError("Could not fetch user data.");
-          setLoading(false);
-        }
-      );
-
-      const unsubscribeStakes = getActiveStakes(user.uid,
-        (stakesData) => {
-          setActiveStakes(stakesData);
-        },
-        (err) => {
-          console.error(err);
-          setError("Could not fetch staking information.");
-        }
-      );
-
-      return () => {
-        unsubscribeUser();
-        unsubscribeStakes();
-      };
-    }
-  }, [user]);
 
   const handleStake = async (values: StakingFormValues) => {
     if (!user || !userData) return;

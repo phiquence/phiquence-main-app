@@ -5,10 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Button } from "@/components/ui/button";
 import { ArrowUpRight, DollarSign, Users, Zap, Loader2, AlertTriangle, Star, CheckCircle, BarChart3, TrendingUp, Bell, ShieldAlert, BadgeHelp } from "lucide-react";
 import Link from "next/link";
-import { useAuth } from "@/hooks/use-auth";
-import { useEffect, useState } from "react";
-import { getUserData, UserData } from "@/services/user.service";
-import { useToast } from "@/hooks/use-toast";
+import { useUserData } from "@/hooks/use-auth";
 import { TradingChart } from "@/components/app/trading-chart";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -44,30 +41,7 @@ function StatCard({ icon: Icon, title, value, footer, valueClassName, isLoading 
 
 
 export default function DashboardPage() {
-  const { user } = useAuth();
-  const { toast } = useToast();
-  const [userData, setUserData] = useState<UserData | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (user) {
-      const unsubscribe = getUserData(user.uid, (data) => {
-        if (data) {
-          setUserData(data);
-        } else {
-          setUserData(null);
-        }
-        setLoading(false);
-      }, (err) => {
-        console.error(err);
-        setError("Could not fetch user information. Please check your connection and refresh.");
-        setLoading(false);
-      });
-
-      return () => unsubscribe();
-    }
-  }, [user]);
+  const { userData, loading, error } = useUserData();
 
   const formatCurrency = (amount: number = 0) => {
     return new Intl.NumberFormat('en-US', {
@@ -77,7 +51,7 @@ export default function DashboardPage() {
   };
   
   const balances = userData?.balances || { usdt: 0, bnb: 0, phi: 0, reward: 0, commission: 0, trading: 0 };
-  const teamStats = (userData as any)?.teamStats || { directs: 0, total: 0, dailyIncome: 0};
+  const teamStats = userData?.teamStats || { directs: 0, total: 0, dailyIncome: 0};
 
 
   return (

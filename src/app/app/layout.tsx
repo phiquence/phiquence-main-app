@@ -2,12 +2,12 @@
 'use client'
 import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app/sidebar";
-import { useAuth } from "@/hooks/use-auth";
+import { useAuth, UserDataProvider } from "@/hooks/use-auth";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { Loader2 } from "lucide-react";
 
-export default function AppLayout({ children }: { children: React.ReactNode }) {
+function AppLayoutContent({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
   const router = useRouter();
 
@@ -24,17 +24,24 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       </div>
     );
   }
-
+  
   return (
-    <div className="bg-background min-h-screen">
-      <SidebarProvider>
-        <AppSidebar />
-        <SidebarInset>
-            <div className="p-4 md:p-8">
-                {children}
-            </div>
-        </SidebarInset>
-      </SidebarProvider>
-    </div>
-  );
+     <UserDataProvider>
+        <div className="bg-background min-h-screen">
+          <SidebarProvider>
+            <AppSidebar />
+            <SidebarInset>
+                <div className="p-4 md:p-8">
+                    {children}
+                </div>
+            </SidebarInset>
+          </SidebarProvider>
+        </div>
+      </UserDataProvider>
+  )
+}
+
+
+export default function AppLayout({ children }: { children: React.ReactNode }) {
+    return <AppLayoutContent>{children}</AppLayoutContent>
 }

@@ -2,9 +2,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useAuth } from '@/hooks/use-auth';
+import { useUserData } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
-import { getAffiliateStats, getAffiliateNetwork, getCommissionHistory, AffiliateStats, AffiliateMember, CommissionLog } from '@/services/affiliate.service';
+import { AffiliateStats, AffiliateMember, CommissionLog } from '@/services/affiliate.service';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -32,46 +32,14 @@ function StatCard({ icon: Icon, title, value, footer }: { icon: React.ElementTyp
 }
 
 export default function AffiliatePage() {
-  const { user } = useAuth();
+  const { user, affiliateStats, affiliateNetwork, commissionHistory, loading, error } = useUserData();
   const { toast } = useToast();
-  const [stats, setStats] = useState<AffiliateStats | null>(null);
-  const [network, setNetwork] = useState<AffiliateMember[]>([]);
-  const [commissions, setCommissions] = useState<CommissionLog[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [referralLink, setReferralLink] = useState('');
 
   useEffect(() => {
     if (typeof window !== 'undefined' && user) {
         setReferralLink(`${window.location.origin}/signup?ref=${user?.uid}`);
-    }
-  }, [user]);
-
-
-  useEffect(() => {
-    if (user) {
-      const fetchData = async () => {
-        try {
-          const unsubscribeStats = getAffiliateStats(user.uid, setStats, (e) => { throw e; });
-          const unsubscribeNetwork = getAffiliateNetwork(user.uid, setNetwork, (e) => { throw e; });
-          const unsubscribeCommissions = getCommissionHistory(user.uid, setCommissions, (e) => { throw e; });
-          
-          setLoading(false);
-
-          return () => {
-            unsubscribeStats();
-            unsubscribeNetwork();
-            unsubscribeCommissions();
-          }
-
-        } catch (err) {
-          console.error(err);
-          setError("Could not fetch affiliate information.");
-          setLoading(false);
-        }
-      };
-      fetchData();
     }
   }, [user]);
 
@@ -136,9 +104,9 @@ export default function AffiliatePage() {
       </header>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        <StatCard icon={Users} title="Total Referrals" value={stats?.totalReferrals || 0} footer="Your entire network" />
-        <StatCard icon={DollarSign} title="Total Commission" value={formatCurrency(stats?.totalCommission || 0)} footer="Earnings from all levels" />
-        <StatCard icon={Award} title="Current Rank" value={stats?.rank || 'Beginner'} footer="Unlock more benefits" />
+        <StatCard icon={Users} title="Total Referrals" value={affiliateStats?.totalReferrals || 0} footer="Your entire network" />
+        <StatCard icon={DollarSign} title="Total Commission" value={formatCurrency(affiliateStats?.totalCommission || 0)} footer="Earnings from all levels" />
+        <StatCard icon={Award} title="Current Rank" value={affiliateStats?.rank || 'Beginner'} footer="Unlock more benefits" />
       </div>
 
       <Card>
@@ -180,8 +148,8 @@ export default function AffiliatePage() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {network.length > 0 ? (
-                        network.map(member => (
+                      {affiliateNetwork.length > 0 ? (
+                        affiliateNetwork.map(member => (
                           <TableRow key={member.id}>
                             <TableCell className="font-medium">{member.name}</TableCell>
                             <TableCell>
@@ -217,8 +185,8 @@ export default function AffiliatePage() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {commissions.length > 0 ? (
-                        commissions.map(log => (
+                      {commissionHistory.length > 0 ? (
+                        commissionHistory.map(log => (
                           <TableRow key={log.id}>
                             <TableCell className="font-medium text-green-500">{formatCurrency(log.amount)}</TableCell>
                             <TableCell>{log.fromUser}</TableCell>
