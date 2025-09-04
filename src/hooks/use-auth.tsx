@@ -71,8 +71,8 @@ export function UserDataProvider({ children }: { children: React.ReactNode }) {
 
     const fetchUserData = useCallback(async () => {
         if (!user) {
-            setUserData(null);
             setLoading(false);
+            setUserData(null);
             return;
         }
 
@@ -84,10 +84,11 @@ export function UserDataProvider({ children }: { children: React.ReactNode }) {
                 setUserData(data);
             } else {
                  setError("User data not found for this account.");
+                 console.error("User data came back as null for UID:", user.uid);
             }
         } catch (e: any) {
-            console.error("Failed to fetch user data:", e);
-            setError("Could not load user data. Please try refreshing the page.");
+            console.error("Failed to fetch user data in provider:", e);
+            setError(e.message || "Could not load user data. Please try refreshing the page.");
         } finally {
             setLoading(false);
         }
@@ -95,15 +96,14 @@ export function UserDataProvider({ children }: { children: React.ReactNode }) {
 
     useEffect(() => {
         if (authLoading) {
-            setLoading(true);
-            return;
+            return; // Wait until Firebase auth state is resolved
         }
         fetchUserData();
     }, [user, authLoading, fetchUserData]);
 
     const value = {
         userData,
-        loading,
+        loading: authLoading || loading,
         error,
         refetch: fetchUserData,
     };

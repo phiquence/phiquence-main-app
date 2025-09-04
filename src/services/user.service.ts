@@ -2,8 +2,8 @@
 'use client';
 
 import { User, updateProfile, updatePassword, deleteUser } from 'firebase/auth';
-import { doc, onSnapshot, setDoc, getDoc, collection, query, where, orderBy, limit, getDocs } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { doc, getDoc, collection, query, where, orderBy, limit, getDocs, setDoc } from 'firebase/firestore';
+import { db, onInit } from '@/lib/firebase';
 import type { Transaction } from '@/services/wallet.service';
 import type { Stake } from '@/services/staking.service';
 import type { AffiliateMember, CommissionLog } from '@/services/affiliate.service';
@@ -50,35 +50,39 @@ export interface CombinedUserData extends UserData {
 
 
 // Function to get a comprehensive snapshot of all user data at once.
-// This is more efficient than multiple realtime listeners.
+// It now waits for Firebase to be initialized before running.
 export const getUserData = async (userId: string): Promise<CombinedUserData | null> => {
-    const userRef = doc(db, "users", userId);
-    const userDoc = await getDoc(userRef);
+    return onInit(async () => {
+        const userRef = doc(db, "users", userId);
+        const userDoc = await getDoc(userRef);
 
-    if (!userDoc.exists()) {
-        console.error("No user document found for ID:", userId);
-        return null;
-    }
+        if (!userDoc.exists()) {
+            console.error("No user document found for ID:", userId);
+            // This might happen for a brand new user before their doc is created.
+            // Returning null is appropriate.
+            return null;
+        }
 
-    const baseData = userDoc.data() as UserData;
+        const baseData = userDoc.data() as UserData;
 
-    // Fetch related collections in parallel for maximum speed
-    const [transactionsSnap, stakesSnap, networkSnap, commissionsSnap] = await Promise.all([
-        getDocs(query(collection(db, "transactions"), where("userId", "==", userId), orderBy("createdAt", "desc"), limit(50))),
-        getDocs(query(collection(db, "stakes"), where("userId", "==", userId), where("status", "==", "active"), orderBy("startAt", "desc"))),
-        getDocs(query(collection(db, "affiliateNetworks", userId, "members"), orderBy("joinDate", "desc"))),
-        getDocs(query(collection(db, "payouts"), where("toUserId", "==", userId), orderBy("createdAt", "desc"), limit(50)))
-    ]);
+        // Fetch related collections in parallel for maximum speed
+        const [transactionsSnap, stakesSnap, networkSnap, commissionsSnap] = await Promise.all([
+            getDocs(query(collection(db, "transactions"), where("userId", "==", userId), orderBy("createdAt", "desc"), limit(50))),
+            getDocs(query(collection(db, "stakes"), where("userId", "==", userId), where("status", "==", "active"), orderBy("startAt", "desc"))),
+            getDocs(query(collection(db, "affiliateNetworks", userId, "members"), orderBy("joinDate", "desc"))),
+            getDocs(query(collection(db, "payouts"), where("toUserId", "==", userId), orderBy("createdAt", "desc"), limit(50)))
+        ]);
 
-    const combinedData: CombinedUserData = {
-        ...baseData,
-        transactions: transactionsSnap.docs.map(d => ({id: d.id, ...d.data()}) as Transaction),
-        stakes: stakesSnap.docs.map(d => ({id: d.id, ...d.data()}) as Stake),
-        network: networkSnap.docs.map(d => ({id: d.id, ...d.data()}) as AffiliateMember),
-        commissions: commissionsSnap.docs.map(d => ({id: d.id, fromUser: d.data().fromUserName, ...d.data()}) as CommissionLog),
-    };
-    
-    return combinedData;
+        const combinedData: CombinedUserData = {
+            ...baseData,
+            transactions: transactionsSnap.docs.map(d => ({id: d.id, ...d.data()}) as Transaction),
+            stakes: stakesSnap.docs.map(d => ({id: d.id, ...d.data()}) as Stake),
+            network: networkSnap.docs.map(d => ({id: d.id, ...d.data()}) as AffiliateMember),
+            commissions: commissionsSnap.docs.map(d => ({id: d.id, fromUser: d.data().fromUserName, ...d.data()}) as CommissionLog),
+        };
+        
+        return combinedData;
+    });
 };
 
 
