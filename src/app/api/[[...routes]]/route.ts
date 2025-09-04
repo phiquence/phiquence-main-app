@@ -11,40 +11,32 @@ import * as crypto from 'crypto';
 // Load environment variables from .env file
 config();
 
-// --- Firebase Admin SDK Initialization ---
-// This function ensures Firebase Admin is initialized only once.
-const initializeFirebaseAdmin = () => {
-    if (admin.apps.length === 0) {
-        try {
-            const serviceAccountKey = process.env.FIREBASE_SERVICE_ACCOUNT_KEY;
-
-            if (serviceAccountKey) {
-                console.log("Initializing Firebase Admin with Service Account Key...");
-                const serviceAccount = JSON.parse(serviceAccountKey);
-                admin.initializeApp({
-                    credential: admin.credential.cert(serviceAccount),
-                    databaseURL: `https://phiquence-ndim2-default-rtdb.asia-southeast1.firebasedatabase.app`,
-                });
-            } else {
-                 // This configuration is for environments like Firebase App Hosting where service account might not be set as a file
-                 // It relies on Application Default Credentials.
-                 console.log("Initializing Firebase Admin with Application Default Credentials...");
-                 admin.initializeApp({
-                    projectId: 'phiquence-ndim2',
-                    storageBucket: 'phiquence-ndim2.appspot.com',
-                 });
-                 console.warn("FIREBASE_SERVICE_ACCOUNT_KEY not found. Initializing with Application Default Credentials.");
-            }
-        } catch (e) {
-            console.error('Failed to initialize Firebase Admin SDK:', e);
-            throw new Error("Could not initialize Firebase Admin SDK.");
+// --- Firebase Admin SDK Singleton Initialization ---
+if (admin.apps.length === 0) {
+    try {
+        const serviceAccountKey = process.env.FIREBASE_SERVICE_ACCOUNT_KEY;
+        if (serviceAccountKey) {
+            console.log("Initializing Firebase Admin with Service Account Key...");
+            const serviceAccount = JSON.parse(serviceAccountKey);
+            admin.initializeApp({
+                credential: admin.credential.cert(serviceAccount),
+                databaseURL: `https://phiquence-ndim2-default-rtdb.asia-southeast1.firebasedatabase.app`,
+            });
+        } else {
+             console.log("Initializing Firebase Admin with Application Default Credentials...");
+             admin.initializeApp({
+                projectId: 'phiquence-ndim2',
+                storageBucket: 'phiquence-ndim2.appspot.com',
+             });
+             console.warn("FIREBASE_SERVICE_ACCOUNT_KEY not found. Using Application Default Credentials.");
         }
+    } catch (e) {
+        console.error('CRITICAL: Failed to initialize Firebase Admin SDK:', e);
     }
-    return {
-        db: admin.firestore(),
-        auth: admin.auth(),
-    };
-};
+}
+
+const db = admin.firestore();
+const auth = admin.auth();
 
 
 const app = new Hono().basePath('/api');
@@ -53,7 +45,6 @@ const app = new Hono().basePath('/api');
 // Verifies the user's token for every API request.
 const authMiddleware = async (c: any, next: any) => {
   try {
-      const { auth } = initializeFirebaseAdmin();
       const authHeader = c.req.header('Authorization');
       if (!authHeader || !authHeader.startsWith('Bearer ')) {
         return c.json({ ok: false, error: 'unauthorized' }, 401);
@@ -73,13 +64,6 @@ const authMiddleware = async (c: any, next: any) => {
 // Unprotected webhook route
 app.post('/wallet/webhook', async (c) => {
     try {
-        initializeFirebaseAdmin();
-        const { db } = admin.apps.length > 0 ? { db: admin.firestore() } : { db: null };
-
-        if (!db) {
-            return c.json({ ok: false, error: "database_not_initialized" }, 500);
-        }
-
         const signature = c.req.header('x-alchemy-signature');
         const webhookSecret = process.env.ALCHEMY_WEBHOOK_SECRET;
 
@@ -186,7 +170,6 @@ app.use('*', authMiddleware);
  */
 app.post('/wallet/request-deposit', async (c) => {
     try {
-        const { db } = initializeFirebaseAdmin();
         const { amount, currency, txHash } = await c.req.json();
         const uid = c.get('uid');
 
@@ -227,7 +210,6 @@ app.post('/wallet/request-deposit', async (c) => {
  */
 app.post('/trading/join', async (c) => {
     try {
-        const { db } = initializeFirebaseAdmin();
         const uid = c.get('uid');
     
         const settingsDoc = await db.doc("settings/global").get();
@@ -265,7 +247,6 @@ app.post('/trading/join', async (c) => {
  */
 app.post('/trading/bet', async (c) => {
     try {
-        const { db } = initializeFirebaseAdmin();
         const { sessionId, direction, amount } = await c.req.json();
         const uid = c.get('uid');
 
@@ -321,7 +302,6 @@ app.post('/trading/bet', async (c) => {
  */
 app.post('/staking/open', async (c) => {
     try {
-        const { db } = initializeFirebaseAdmin();
         const { amount, tier, autoCompound = false } = await c.req.json();
         const uid = c.get('uid');
 
@@ -418,7 +398,6 @@ app.post('/staking/open', async (c) => {
 // --- Founder Routes ---
 app.post('/founder/join', async (c) => {
     try {
-        const { db } = initializeFirebaseAdmin();
         const uid = c.get('uid');
         const FOUNDER_COST = 5000;
 

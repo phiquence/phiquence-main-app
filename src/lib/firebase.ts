@@ -13,9 +13,10 @@ const firebaseConfig = {
   appId: "1:107293394177:web:eae17deb60de18b2ff4700"
 };
 
-// --- Reliable Initialization ---
+// --- Reliable Singleton Initialization ---
 let app: FirebaseApp;
-if (getApps().length === 0) {
+
+if (!getApps().length) {
     app = initializeApp(firebaseConfig);
 } else {
     app = getApp();
