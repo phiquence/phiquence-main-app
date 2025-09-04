@@ -11,7 +11,7 @@ import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Separator } from "@/components/ui/separator"
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
+import { Sheet, SheetContent, SheetDescription, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
 import { Skeleton } from "@/components/ui/skeleton"
 import {
   Tooltip,
@@ -115,6 +115,8 @@ const Sidebar = React.forwardRef<
           className="w-[var(--sidebar-width)] bg-sidebar p-0 text-sidebar-foreground"
           style={{ "--sidebar-width": SIDEBAR_WIDTH_MOBILE } as React.CSSProperties}
         >
+           <SheetTitle className="sr-only">Main Navigation</SheetTitle>
+           <SheetDescription className="sr-only">Navigate through the app sections.</SheetDescription>
           <div className="flex h-full flex-col">{children}</div>
         </SheetContent>
       </Sheet>
@@ -155,10 +157,11 @@ const SidebarInset = React.forwardRef<
   return (
     <main
       ref={ref}
-      className={cn("flex-1 transition-all duration-300 ease-in-out", className)}
+      className={cn("flex-1 transition-all duration-300 ease-in-out", "ml-[var(--sidebar-width-collapsed)] data-[state=expanded]:ml-[var(--sidebar-width-expanded)]", className)}
       style={{
-        paddingLeft: state === 'expanded' ? SIDEBAR_WIDTH_EXPANDED : SIDEBAR_WIDTH_COLLAPSED
-      }}
+        "--sidebar-width-expanded": SIDEBAR_WIDTH_EXPANDED,
+        "--sidebar-width-collapsed": SIDEBAR_WIDTH_COLLAPSED,
+      } as React.CSSProperties}
       {...props}
     />
   );
@@ -303,17 +306,16 @@ const SidebarMenuButton = React.forwardRef<
     
     if (asChild) {
        const child = React.Children.only(children);
+       const childWithProps = React.cloneElement(child as React.ReactElement, {
+            "data-active": isActive,
+            className: cn(sidebarMenuButtonVariants(), state === 'collapsed' && "justify-center", (child as React.ReactElement).props.className, className),
+            ...props
+       });
+
        return (
            <Tooltip>
                 <TooltipTrigger asChild>
-                   <Slot
-                     ref={ref as React.Ref<HTMLElement>}
-                     data-active={isActive}
-                     className={cn(sidebarMenuButtonVariants(), state === 'collapsed' && "justify-center", className)}
-                     {...props}
-                   >
-                     {child}
-                   </Slot>
+                   {childWithProps}
                  </TooltipTrigger>
                  {tooltip && state === 'collapsed' && (
                     <TooltipContent side="right" align="center">
@@ -325,7 +327,7 @@ const SidebarMenuButton = React.forwardRef<
     }
     
     const buttonContent = (
-       <>
+       <React.Fragment>
          {React.Children.map(children, (child, index) => {
            if (React.isValidElement(child) && index === 0) { // Icon
              return React.cloneElement(child, { className: 'h-5 w-5 shrink-0' });
@@ -335,7 +337,7 @@ const SidebarMenuButton = React.forwardRef<
            }
            return child;
          })}
-       </>
+       </React.Fragment>
     );
 
     const button = (
