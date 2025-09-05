@@ -37,8 +37,9 @@ export default function AffiliatePage() {
   const [referralLink, setReferralLink] = useState('');
 
   useEffect(() => {
-    if (typeof window !== 'undefined' && userData?.uid) {
-        setReferralLink(`${window.location.origin}/signup?ref=${userData.uid}`);
+    if (userData?.uid) {
+        const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || window.location.origin;
+        setReferralLink(`${baseUrl}/signup?ref=${userData.uid}`);
     }
   }, [userData]);
 
