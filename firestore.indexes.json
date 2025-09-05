@@ -1,3 +1,4 @@
+
 {
   "indexes": [
     {
@@ -53,6 +54,40 @@
         {
           "fieldPath": "joinDate",
           "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "users",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "referral.sponsorId",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "users",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "referral.path",
+          "arrayConfig": "CONTAINS"
+        }
+      ]
+    },
+     {
+      "collectionGroup": "payouts",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "toUserId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "createdAt",
+          "order": "ASCENDING"
         }
       ]
     }
