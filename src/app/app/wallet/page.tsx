@@ -1,162 +1,111 @@
 
 'use client';
 
-import { useUserData } from '@/hooks/use-auth';
+import { useState } from 'react';
+import { useAuth } from '@/hooks/use-auth';
+import { useToast } from '@/hooks/use-toast';
+import QRCode from 'qrcode.react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Loader2, AlertTriangle, ArrowUpRight, ArrowDownLeft, MinusSquare, CircleDollarSign, Users } from 'lucide-react';
-import { format } from 'date-fns';
-import { getTransactionIcon, getTransactionColor } from '@/lib/utils';
-import { Badge } from '@/components/ui/badge';
-import { Web3Deposit } from '@/components/app/web3-deposit';
-
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Loader2, AlertTriangle, Copy } from 'lucide-react';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 export default function WalletPage() {
-  const { userData, loading, error } = useUserData();
-  
-  const formatCurrency = (amount: number = 0) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-    }).format(amount);
-  };
-  
-  const formatDate = (timestamp: any) => {
-    if (timestamp && typeof timestamp.toDate === 'function') {
-        return format(timestamp.toDate(), 'PPp');
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const [depositAddress, setDepositAddress] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  const getDepositAddress = async () => {
+    setIsLoading(true);
+    setError('');
+    try {
+      if (!user) throw new Error("Please log in to see your address.");
+
+      const token = await user.getIdToken();
+      const response = await fetch('/api/wallet/deposit-address', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      const result = await response.json();
+      if (!result.ok) throw new Error(result.error);
+
+      setDepositAddress(result.address);
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setIsLoading(false);
     }
-    return 'Invalid Date';
-  }
+  };
 
-  const balances = userData?.balances;
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-full">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <Card className="bg-destructive/10 border-destructive">
-        <CardHeader className="flex flex-row items-center gap-4">
-            <AlertTriangle className="h-8 w-8 text-destructive"/>
-            <div>
-                <CardTitle className="text-destructive">Error</CardTitle>
-                <CardDescription className="text-destructive/80">{error}</CardDescription>
-            </div>
-        </CardHeader>
-      </Card>
-    );
-  }
+  const copyToClipboard = () => {
+    navigator.clipboard.writeText(depositAddress);
+    toast({ title: "Address Copied!", description: "The deposit address has been copied to your clipboard." });
+  };
 
   return (
     <div className="space-y-8">
       <header>
         <h1 className="text-3xl font-bold tracking-tight font-headline">My Wallet</h1>
-        <p className="text-muted-foreground">Manage your funds and view your transaction history.</p>
+        <p className="text-muted-foreground">Generate your unique address to deposit funds.</p>
       </header>
 
-       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-          <Card className="lg:col-span-1">
-            <CardHeader>
-              <CardTitle className="text-sm font-medium">USDT Balance</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-2xl font-bold">{formatCurrency(balances?.usdt)}</p>
-            </CardContent>
-          </Card>
-          <Card className="lg:col-span-1">
-            <CardHeader>
-              <CardTitle className="text-sm font-medium">PHI Balance</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-2xl font-bold">{balances?.phi?.toLocaleString()}</p>
-            </CardContent>
-          </Card>
-          <Card className="lg:col-span-1">
-            <CardHeader>
-              <CardTitle className="text-sm font-medium">Reward Balance</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-2xl font-bold">{formatCurrency(balances?.reward)}</p>
-            </CardContent>
-          </Card>
-           <Card className="lg:col-span-1">
-            <CardHeader>
-              <CardTitle className="text-sm font-medium">Commission</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-2xl font-bold">{formatCurrency(balances?.commission)}</p>
-            </CardContent>
-          </Card>
-           <Card className="lg:col-span-1">
-            <CardHeader>
-              <CardTitle className="text-sm font-medium">Trading</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-2xl font-bold">{formatCurrency(balances?.trading)}</p>
-            </CardContent>
-          </Card>
-      </div>
+      <Card className="max-w-md mx-auto">
+        <CardHeader>
+          <CardTitle>Deposit USDT (BEP20)</CardTitle>
+          <CardDescription>
+            Click the button below to view your personal deposit address.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="text-center">
+          {!depositAddress ? (
+            <Button onClick={getDepositAddress} disabled={isLoading} size="lg">
+              {isLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Loading...
+                </>
+              ) : (
+                'Show My Deposit Address'
+              )}
+            </Button>
+          ) : (
+            <div className="space-y-6 pt-4 animate-in fade-in-50">
+              <div className="p-4 bg-background rounded-lg flex justify-center">
+                <QRCode value={depositAddress} size={200} bgColor="hsl(var(--background))" fgColor="hsl(var(--foreground))" />
+              </div>
+              <div className="space-y-2">
+                 <p className="text-sm text-muted-foreground">Send only USDT (BEP20) to this address:</p>
+                <div className="flex gap-2">
+                  <Input readOnly value={depositAddress} className="text-center text-sm bg-muted" />
+                  <Button variant="outline" size="icon" onClick={copyToClipboard}>
+                    <Copy className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+               <Alert>
+                  <AlertTriangle className="h-4 w-4" />
+                  <AlertTitle>Important!</AlertTitle>
+                  <AlertDescription>
+                    Sending any other asset to this address may result in the permanent loss of your funds.
+                  </AlertDescription>
+                </Alert>
+            </div>
+          )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <Card className="lg:col-span-1">
-          <CardHeader>
-              <CardTitle>Web3 Deposit</CardTitle>
-              <CardDescription>Connect your wallet to deposit funds directly.</CardDescription>
-          </CardHeader>
-          <CardContent>
-              <Web3Deposit />
-          </CardContent>
-        </Card>
-        
-        <div className="lg:col-span-2">
-            <Card>
-                <CardHeader>
-                    <CardTitle>Transaction History</CardTitle>
-                    <CardDescription>Your recent deposits and withdrawals.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <div className="overflow-x-auto">
-                        <Table>
-                            <TableHeader>
-                                <TableRow>
-                                    <TableHead>Type</TableHead>
-                                    <TableHead>Amount</TableHead>
-                                    <TableHead>Status</TableHead>
-                                    <TableHead>Date</TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {userData?.transactions?.length > 0 ? (
-                                    userData.transactions.map(tx => (
-                                        <TableRow key={tx.id}>
-                                            <TableCell className="capitalize flex items-center gap-2">
-                                                {getTransactionIcon(tx.type)}
-                                                {tx.type.replace('_', ' ')}
-                                            </TableCell>
-                                            <TableCell className={getTransactionColor(tx.type)}>{tx.amount} {tx.currency}</TableCell>
-                                             <TableCell className="capitalize">
-                                                <Badge variant={tx.status === 'confirmed' ? 'default' : 'secondary'}>{tx.status}</Badge>
-                                             </TableCell>
-                                            <TableCell>{formatDate(tx.createdAt)}</TableCell>
-                                        </TableRow>
-                                    ))
-                                ) : (
-                                    <TableRow>
-                                        <TableCell colSpan={4} className="text-center text-muted-foreground h-24">No transactions yet.</TableCell>
-                                    </TableRow>
-                                )}
-                            </TableBody>
-                        </Table>
-                    </div>
-                </CardContent>
-            </Card>
-        </div>
-      </div>
+          {error && (
+            <Alert variant="destructive" className="mt-4 text-left">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertTitle>Error</AlertTitle>
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }

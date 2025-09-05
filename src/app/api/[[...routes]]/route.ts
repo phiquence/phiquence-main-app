@@ -164,6 +164,35 @@ app.post('/wallet/webhook', async (c) => {
 app.use('*', authMiddleware);
 
 /**
+ * Route: GET /api/wallet/deposit-address
+ * Retrieves the user's pre-assigned deposit address.
+ */
+app.get('/wallet/deposit-address', async (c) => {
+    try {
+        const uid = c.get('uid');
+        const userRef = db.doc(`users/${uid}`);
+        const userDoc = await userRef.get();
+
+        if (!userDoc.exists) {
+            return c.json({ ok: false, error: "User not found." }, 404);
+        }
+
+        const userData = userDoc.data();
+        const depositAddress = userData?.wallets?.usdt_bep20;
+
+        if (!depositAddress) {
+            return c.json({ ok: false, error: "Deposit address not assigned. Please contact support." }, 404);
+        }
+
+        return c.json({ ok: true, address: depositAddress });
+    } catch (e: any) {
+        console.error("Failed to get deposit address:", e);
+        return c.json({ ok: false, error: e.message || "An unexpected error occurred." }, 500);
+    }
+});
+
+
+/**
  * Route: POST /api/wallet/request-deposit
  * Logs a user's deposit request for manual admin verification.
  * This does NOT update the user's balance.
