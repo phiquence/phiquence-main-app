@@ -31,16 +31,16 @@ function StatCard({ icon: Icon, title, value, footer }: { icon: React.ElementTyp
 }
 
 export default function AffiliatePage() {
-  const { user, userData, loading, error } = useUserData();
+  const { userData, loading, error } = useUserData();
   const { toast } = useToast();
   const [copied, setCopied] = useState(false);
   const [referralLink, setReferralLink] = useState('');
 
   useEffect(() => {
-    if (typeof window !== 'undefined' && user) {
-        setReferralLink(`${window.location.origin}/signup?ref=${user?.uid}`);
+    if (typeof window !== 'undefined' && userData?.uid) {
+        setReferralLink(`${window.location.origin}/signup?ref=${userData.uid}`);
     }
-  }, [user]);
+  }, [userData]);
 
   const copyToClipboard = () => {
     if (!referralLink) return;
@@ -124,11 +124,11 @@ export default function AffiliatePage() {
           <div className="flex flex-col sm:flex-row gap-2">
             <input type="text" readOnly value={referralLink} className="flex-1 p-2 border rounded-md bg-muted text-muted-foreground"/>
             <div className="flex gap-2">
-                <Button onClick={copyToClipboard} variant="outline">
+                <Button onClick={copyToClipboard} variant="outline" disabled={!referralLink}>
                     {copied ? <Check className="mr-2" /> : <Copy className="mr-2" />}
                     {copied ? 'Copied' : 'Copy'}
                 </Button>
-                <Button onClick={shareLink}>
+                <Button onClick={shareLink} disabled={!referralLink}>
                     <Share2 className="mr-2" />
                     Share
                 </Button>
