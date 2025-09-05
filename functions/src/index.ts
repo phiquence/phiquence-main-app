@@ -113,6 +113,34 @@ const authMiddleware = async (req: Request, res: Response, next: NextFunction) =
   }
 };
 
+app.get("/api/wallet/deposit-address", authMiddleware, async (req: Request, res: Response) => {
+    const uid = req.uid as string;
+    try {
+        const userRef = db.doc(`users/${uid}`);
+        const userDoc = await userRef.get();
+
+        if (!userDoc.exists) {
+            return res.status(404).json({ ok: false, error: "user_not_found" });
+        }
+        
+        const userData = userDoc.data();
+        // Assuming the address is stored in wallets.usdt_bep20
+        const depositAddress = userData?.wallets?.usdt_bep20;
+
+        if (!depositAddress) {
+            // This might happen if the field is not set for the user yet
+            return res.status(404).json({ ok: false, error: "deposit_address_not_assigned" });
+        }
+
+        return res.json({ ok: true, address: depositAddress });
+
+    } catch (error) {
+        console.error("Error fetching deposit address:", error);
+        return res.status(500).json({ ok: false, error: "internal_server_error" });
+    }
+});
+
+
 app.post("/api/staking/open", authMiddleware, async (req: Request, res: Response) => {
     const { amount, tier, autoCompound=false } = req.body || {};
     const uid = req.uid as string;
