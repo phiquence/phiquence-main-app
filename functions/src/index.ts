@@ -189,4 +189,57 @@ app.post("/api/trading/bet", authMiddleware, async (req: Request, res: Response)
     }
 });
 
+app.get("/api/affiliate/summary", authMiddleware, async (req: Request, res: Response) => {
+    const uid = req.uid as string;
+
+    try {
+        const usersRef = db.collection("users");
+        
+        // 1. Get current user's document for total commission
+        const userDoc = await usersRef.doc(uid).get();
+        const totalCommission = userDoc.data()?.balances?.commission || 0;
+        
+        // 2. Count direct referrals
+        const directsQuery = usersRef.where("referral.sponsorId", "==", uid);
+        const directsSnapshot = await directsQuery.count().get();
+        const directsCount = directsSnapshot.data().count;
+
+        // 3. Count total team members
+        const totalTeamQuery = usersRef.where("referral.path", "array-contains", uid);
+        const totalTeamSnapshot = await totalTeamQuery.count().get();
+        const totalTeamCount = totalTeamSnapshot.data().count;
+
+        // 4. Calculate today's commissions (more complex, requires querying payouts)
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const tomorrow = new Date(today);
+        tomorrow.setDate(tomorrow.getDate() + 1);
+
+        const payoutsRef = db.collection("payouts");
+        const todayCommissionsQuery = await payoutsRef
+            .where("toUserId", "==", uid)
+            .where("createdAt", ">=", admin.firestore.Timestamp.fromDate(today))
+            .where("createdAt", "<", admin.firestore.Timestamp.fromDate(tomorrow))
+            .get();
+            
+        let todayCommission = 0;
+        todayCommissionsQuery.forEach(doc => {
+            todayCommission += doc.data().amount || 0;
+        });
+        
+        const summaryData = {
+            directs: directsCount,
+            totalTeam: totalTeamCount,
+            totalCommission: totalCommission,
+            todayCommission: todayCommission,
+        };
+
+        return res.json({ ok: true, summary: summaryData });
+
+    } catch (error) {
+        console.error("Error fetching affiliate summary:", error);
+        return res.status(500).json({ ok: false, error: "internal_server_error" });
+    }
+});
+
 export const api = onRequest({ region: "asia-southeast1" }, app);
