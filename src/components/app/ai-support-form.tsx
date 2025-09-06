@@ -10,6 +10,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Loader2, Sparkles, FileText } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import Link from "next/link";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Label } from "../ui/label";
 
 const initialState: SupportActionState = {
   answer: null,
@@ -38,16 +40,34 @@ export function AiSupportForm() {
         ref={formRef}
         className="space-y-4"
       >
-        <Textarea
-          name="query"
-          placeholder="e.g., How do I enable auto-compounding for my stake?"
-          required
-          minLength={10}
-          rows={5}
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          className="text-base"
-        />
+         <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+            <div className="sm:col-span-1 space-y-2">
+                <Label htmlFor="language">Language</Label>
+                <Select name="language" defaultValue="English">
+                    <SelectTrigger id="language">
+                        <SelectValue placeholder="Language" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="English">English</SelectItem>
+                        <SelectItem value="Bengali">Bengali</SelectItem>
+                    </SelectContent>
+                </Select>
+            </div>
+            <div className="sm:col-span-3 space-y-2">
+                <Label htmlFor="query">Your Question</Label>
+                <Textarea
+                    id="query"
+                    name="query"
+                    placeholder="e.g., How do I complete my KYC verification?"
+                    required
+                    minLength={10}
+                    rows={4}
+                    value={query}
+                    onChange={(e) => setQuery(e.target.value)}
+                    className="text-base"
+                />
+            </div>
+         </div>
         <Button type="submit" disabled={isPending || query.length < 10}>
           {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
           Get Help
@@ -69,7 +89,7 @@ export function AiSupportForm() {
                         <Sparkles className="h-6 w-6 text-primary" />
                         <CardTitle>AI Suggestion</CardTitle>
                     </CardHeader>
-                    <CardContent className="prose prose-p:text-foreground dark:prose-p:text-foreground">
+                    <CardContent className="prose prose-sm max-w-full prose-p:text-foreground dark:prose-p:text-foreground">
                         <p>{state.answer}</p>
                     </CardContent>
                 </Card>

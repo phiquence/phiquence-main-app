@@ -12,27 +12,33 @@ export type SupportActionState = {
   id: number | null;
 };
 
-const QuerySchema = z.string().min(10, "Please describe your issue in at least 10 characters.");
+const QuerySchema = z.object({
+    query: z.string().min(10, "Please describe your issue in at least 10 characters."),
+    language: z.string(),
+});
 
 export async function handleSupportQuery(
   prevState: SupportActionState,
   formData: FormData
 ): Promise<SupportActionState> {
-  const query = formData.get("query");
+  const rawData = {
+    query: formData.get("query"),
+    language: formData.get("language"),
+  }
 
-  const validatedQuery = QuerySchema.safeParse(query);
+  const validatedData = QuerySchema.safeParse(rawData);
 
-  if (!validatedQuery.success) {
+  if (!validatedData.success) {
     return {
       answer: null,
       suggestedDocuments: null,
-      error: validatedQuery.error.errors[0].message,
+      error: validatedData.error.errors[0].message,
       id: null,
     };
   }
   
   try {
-    const result: AIDrivenSupportOutput = await aiDrivenSupport({ query: validatedQuery.data });
+    const result: AIDrivenSupportOutput = await aiDrivenSupport(validatedData.data);
     responseId++;
     return {
       answer: result.answer,

@@ -22,7 +22,7 @@ export default function SupportPage() {
             <CardHeader>
                 <CardTitle className="flex items-center gap-2"><Bot /> AI-Powered Support</CardTitle>
                 <CardDescription>
-                    Have a question? Get instant answers from our AI assistant about your account, staking, or any other features.
+                    Have a question? Get instant answers from our AI assistant. Select your preferred language and describe your issue.
                 </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -39,11 +39,17 @@ export default function SupportPage() {
             </CardHeader>
             <CardContent className="space-y-4">
                <Script
-                src="https://cdn.jotfor.ms/agent/embedjs/01986f2f3c3473c2a87de15da94a6ac0d481/embed.js"
+                id="jotform-agent"
+                src="https://cdn.jotfor.ms/agent/embed.js"
+                onLoad={() => {
+                  (window as any).JotformAgent?.init({
+                    autoOpen: false,
+                    agentId: "01986f2f3c3473c2a87de15da94a6ac0d481",
+                  });
+                }}
                 strategy="lazyOnload"
               />
-              <div id="jotform-agent-container"></div>
-               <p className="text-sm text-muted-foreground">Click the bubble in the bottom right to start a chat.</p>
+              <p className="text-sm text-muted-foreground">Click the bubble in the bottom right to start a chat with a live agent.</p>
             </CardContent>
         </Card>
 
