@@ -503,6 +503,64 @@ app.post('/founder/join', async (c) => {
     }
 });
 
+// --- Social Interaction Tracking ---
+app.post('/social/click', async (c) => {
+    try {
+        const { platform } = await c.req.json();
+        const uid = c.get('uid');
+
+        if (!platform) {
+            return c.json({ ok: false, error: "invalid_payload" }, 400);
+        }
+
+        const interactionRef = db.collection("socialInteractions").doc();
+        await interactionRef.set({
+            userId: uid,
+            platform,
+            clickedAt: admin.firestore.FieldValue.serverTimestamp()
+        });
+
+        return c.json({ ok: true });
+    } catch (e: any) {
+        console.error("Social click tracking failed:", e);
+        return c.json({ ok: false, error: "internal_server_error" }, 500);
+    }
+});
+
+// --- User Data Management (for Admins) ---
+app.get('/user/:id', async (c) => {
+    const claims = c.get('claims');
+    if (claims.role !== 'admin') {
+        return c.json({ ok: false, error: "permission_denied" }, 403);
+    }
+    const userId = c.req.param('id');
+    const userDoc = await db.doc(`users/${userId}`).get();
+    if (!userDoc.exists) {
+        return c.json({ ok: false, error: "user_not_found" }, 404);
+    }
+    return c.json({ ok: true, user: userDoc.data() });
+});
+
+app.put('/user/:id', async (c) => {
+    const claims = c.get('claims');
+    if (claims.role !== 'admin') {
+        return c.json({ ok: false, error: "permission_denied" }, 403);
+    }
+    const userId = c.req.param('id');
+    const updateData = await c.req.json();
+    
+    // Simple safeguard to prevent overwriting critical fields unintentionally
+    delete updateData.uid; 
+    delete updateData.email;
+
+    try {
+        await db.doc(`users/${userId}`).update(updateData);
+        return c.json({ ok: true, message: "User updated successfully." });
+    } catch (e: any) {
+        return c.json({ ok: false, error: e.message || "update_failed" }, 500);
+    }
+});
+
 
 // Export the app for Vercel
 export const GET = handle(app);

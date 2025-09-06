@@ -7,6 +7,7 @@ import { ThemeProvider } from '@/components/theme-provider';
 export const metadata: Metadata = {
   title: 'Phiquence - True Balance. Real Growth.',
   description: 'The next generation of financial tools for staking, trading, and affiliate growth.',
+  manifest: '/manifest.json',
 };
 
 export default function RootLayout({

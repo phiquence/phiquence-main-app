@@ -31,6 +31,7 @@ import { Menu } from 'lucide-react';
 import { Logo } from '@/components/logo';
 import { AuthButtons } from '@/components/auth-buttons';
 import { ThemeToggle } from '@/components/theme-toggle';
+import { SocialLinks } from '@/components/social-links';
 
 const marketData = [
   { symbol: 'BTC', price: '68,123.45', change: '+1.25%', iconColor: 'text-yellow-500' },
@@ -181,12 +182,13 @@ function HeroSection() {
         </div>
         <div className="flex items-center justify-center">
             <Image 
-                src="/logo.png" 
+                src="/logo512.png" 
                 alt="Phiquence Platform Logo" 
                 width={400} 
                 height={400} 
                 className="rounded-full shadow-2xl shadow-primary/20"
                 priority
+                data-ai-hint="logo company"
             />
         </div>
       </div>
@@ -301,12 +303,8 @@ function Footer() {
     <footer className="py-8 px-[5vw] border-t bg-secondary/50">
       <div className="container flex flex-col items-center justify-between gap-6 md:flex-row">
         <Logo />
-        <p className="text-sm text-muted-foreground">© {new Date().getFullYear()} Phiquence. All rights reserved.</p>
-        <div className="flex gap-4">
-          <Link href="#"><HeartHandshake className="h-6 w-6 text-muted-foreground hover:text-primary" /></Link>
-          <Link href="#"><Scale className="h-6 w-6 text-muted-foreground hover:text-primary" /></Link>
-          <Link href="#"><Zap className="h-6 w-6 text-muted-foreground hover:text-primary" /></Link>
-        </div>
+        <p className="text-sm text-muted-foreground text-center md:text-left">© {new Date().getFullYear()} Phiquence. All rights reserved.</p>
+        <SocialLinks />
       </div>
     </footer>
   );
