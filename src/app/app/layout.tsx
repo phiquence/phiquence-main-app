@@ -1,49 +1,24 @@
+'use client';
 
-'use client'
-import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
-import { AppSidebar } from "@/components/app/sidebar";
-import { useAuth, UserDataProvider } from "@/hooks/use-auth";
-import { useRouter } from "next/navigation";
-import { useEffect } from "react";
-import { Loader2 } from "lucide-react";
+import { useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 
-function AppLayoutContent({ children }: { children: React.ReactNode }) {
-  const { user, loading } = useAuth();
-  const router = useRouter();
+export default function RootLayout({ children }: { children: React.ReactNode }) {
+  const searchParams = useSearchParams();
 
   useEffect(() => {
-    if (!loading && !user) {
-      router.push('/login');
+    const refCode = searchParams.get('ref');
+    if (refCode) {
+      // রেফারেল কোডটি ব্রাউজারের localStorage-এ সেভ করে রাখা হয়
+      // যাতে ব্যবহারকারী অন্য পেজে গেলেও কোডটি হারিয়ে না যায়
+      console.log(`Referral code captured: ${refCode}`);
+      localStorage.setItem('sponsorId', refCode);
     }
-  }, [user, loading, router]);
+  }, [searchParams]);
 
-  if (loading || !user) {
-    return (
-      <div className="flex items-center justify-center min-h-screen bg-background">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
-  }
-  
   return (
-      <UserDataProvider>
-        <div className="bg-background min-h-screen">
-          <SidebarProvider>
-            <AppSidebar />
-            <SidebarInset>
-                <div className="p-4 md:p-8">
-                    {children}
-                </div>
-            </SidebarInset>
-          </SidebarProvider>
-        </div>
-    </UserDataProvider>
-  )
-}
-
-
-export default function AppLayout({ children }: { children: React.ReactNode }) {
-    return (
-      <AppLayoutContent>{children}</AppLayoutContent>
-    )
+    <html lang="en">
+      <body>{children}</body>
+    </html>
+  );
 }

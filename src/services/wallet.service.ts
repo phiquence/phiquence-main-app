@@ -7,7 +7,7 @@ import { db } from "@/lib/firebase";
 export interface Transaction {
     id: string;
     userId: string;
-    type: 'deposit' | 'withdraw' | 'reward' | 'commission' | 'trade_pl' | 'stake_daily';
+    type: 'deposit' | 'withdraw' | 'reward' | 'commission' | 'trade_pl' | 'stake_daily' | 'founder_purchase';
     currency: 'USDT' | 'BNB' | 'PHI';
     amount: number;
     status: 'pending' | 'confirmed' | 'failed' | 'reviewing';
@@ -15,6 +15,7 @@ export interface Transaction {
     meta: {
         network?: string;
         txHash?: string;
+        description?: string;
     };
     createdAt: any;
 }
@@ -45,7 +46,7 @@ export const getTransactions = (
 }
 
 // This function now only submits a request. The actual balance update will be handled by an admin/backend process.
-export const submitDepositRequest = async (token: string, amount: number, currency: 'USDT' | 'BNB' | 'PHI', txHash: string): Promise<{ message: string }> => {
+export const submitDepositRequest = async (token: string, amount: number, currency: 'USDT' | 'BNB' | 'PHI', txHash: string): Promise<{ ok: boolean; message: string }> => {
     const response = await fetch('/api/wallet/request-deposit', {
         method: 'POST',
         headers: {
@@ -63,5 +64,3 @@ export const submitDepositRequest = async (token: string, amount: number, curren
     
     return data;
 };
-
-    

@@ -37,23 +37,25 @@ export default function StakingPage() {
   const { user, userData, loading, error } = useUserData();
   const { toast } = useToast();
   const [selectedPackage, setSelectedPackage] = useState(stakingPackages[0]);
-  const [searchParams, setSearchParams] = useState<URLSearchParams | null>(null);
+  
+  // This state is not needed if we are not using URL search params to set the package
+  // const [searchParams, setSearchParams] = useState<URLSearchParams | null>(null);
 
-  useEffect(() => {
-    setSearchParams(new URLSearchParams(window.location.search));
-  }, []);
+  // useEffect(() => {
+  //   setSearchParams(new URLSearchParams(window.location.search));
+  // }, []);
 
-  useEffect(() => {
-    if (searchParams) {
-      const initialPackage = searchParams.get('package');
-      if(initialPackage) {
-        const pkg = stakingPackages.find(p => p.id.toLowerCase() === initialPackage.toLowerCase());
-        if (pkg) {
-          setSelectedPackage(pkg);
-        }
-      }
-    }
-  }, [searchParams]);
+  // useEffect(() => {
+  //   if (searchParams) {
+  //     const initialPackage = searchParams.get('package');
+  //     if(initialPackage) {
+  //       const pkg = stakingPackages.find(p => p.id.toLowerCase() === initialPackage.toLowerCase());
+  //       if (pkg) {
+  //         setSelectedPackage(pkg);
+  //       }
+  //     }
+  //   }
+  // }, [searchParams]);
 
   const form = useForm<StakingFormValues>({
     resolver: zodResolver(stakingFormSchema),
@@ -107,7 +109,11 @@ export default function StakingPage() {
     if (timestamp && typeof timestamp.toDate === 'function') {
         return format(timestamp.toDate(), 'PP');
     }
-    return 'Invalid Date';
+    // Handle cases where timestamp might already be a Date object or null
+    if (timestamp instanceof Date) {
+        return format(timestamp, 'PP');
+    }
+    return 'N/A';
   }
 
   return (
@@ -164,7 +170,7 @@ export default function StakingPage() {
                                   <p className="text-sm text-muted-foreground">Daily Reward</p>
                                </div>
                                <div className="text-center md:text-right">
-                                  <p className="text-lg font-semibold">{formatCurrency(pkg.min)} - {pkg.max === Infinity ? 'Unlimited' : formatCurrency(pkg.max)}</p>
+                                  <p className="text-lg font-semibold">{formatCurrency(pkg.min)} - {pkg.max === 10000 ? formatCurrency(pkg.max) : 'Unlimited'}</p>
                                   <p className="text-sm text-muted-foreground">Staking Amount (USDT)</p>
                                </div>
                           </div>

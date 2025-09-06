@@ -12,7 +12,7 @@ export interface UserData {
     uid: string;
     email: string;
     name: string;
-    phone: string | null;
+    phone?: string | null;
     kyc: {
         status: 'pending' | 'approved' | 'rejected';
         files: string[];
@@ -37,6 +37,11 @@ export interface UserData {
     };
     rank: string;
     createdAt: any;
+    teamStats: {
+        directs: number;
+        total: number;
+        dailyIncome: number;
+    };
     joinedTradingHub?: boolean;
     isFounder?: boolean;
 }
@@ -77,7 +82,7 @@ export const updateUserInfo = async (user: User, name: string, photoURL: string)
         });
         // You might also want to update the name in your Firestore 'users' document
         const userRef = doc(db, 'users', user.uid);
-        await setDoc(userRef, { name }, { merge: true });
+        await setDoc(userRef, { name, photoURL: photoURL || null }, { merge: true });
 
     } catch (error) {
         console.error("Error updating profile:", error);

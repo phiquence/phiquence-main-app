@@ -1,17 +1,14 @@
+
+import { onCall, onRequest, HttpsError } from "firebase-functions/v2/https";
+import { onUserCreated } from "firebase-functions/v2/auth";
 import * as admin from "firebase-admin";
 import express, { Request, Response, NextFunction } from "express";
+import * as sgMail from "@sendgrid/mail";
 
-// v2 ফাংশনের জন্য নতুন ইম্পোর্ট
-import { onCall, HttpsError } from "firebase-functions/v2/https";
-import { onRequest } from "firebase-functions/v2/https";
-
-// Firebase Admin SDK চালু করা
-if (admin.apps.length === 0) {
-  admin.initializeApp();
-}
+admin.initializeApp();
 const db = admin.firestore();
 
-// --- TypeScript-কে জানানোর জন্য যে আমাদের Request অবজেক্টে uid এবং claims থাকবে ---
+// Extend the Express Request type
 declare global {
   // eslint-disable-next-line @typescript-eslint/no-namespace
   namespace Express {
@@ -22,252 +19,254 @@ declare global {
   }
 }
 
-// ========================================================================
-// ## বিভাগ ১: ডেটাবেস Seeder ফাংশন (v2 সিনট্যাক্স)
-// ========================================================================
-
-const globalSettings = {
-  staking: {
-    accrualTime: { hour: 0, minute: 5, tz: "Asia/Dhaka" },
-    offDays: { weekly: ["FRI"], calendar: [] },
-    packages: {
-      Harmony: { min: 50, max: 499, dailyPct: 0.003 },
-      Proportion: { min: 500, max: 1999, dailyPct: 0.005 },
-      Divine: { min: 2000, max: 4999, dailyPct: 0.008 },
-      Infinity: { min: 5000, max: 10000, dailyPct: 0.012 },
-    },
-    termDays: 365,
-    compoundAllowed: true,
-  },
-  affiliate: {
-    spot: {
-      levels: 5,
-      rates: { l1: 0.10, l2: 0.06, l3: 0.04, l4: 0.02, l5: 0.01 },
-    },
-    stakeDaily: {
-      levels: 5,
-      rates: { l1: 0.02, l2: 0.01, l3: 0.005, l4: 0.003, l5: 0.002 },
-    },
-    tradingHub: {
-      freeJoinGift: 5,
-      profitSharePct: 0.04,
-      lossSharePct: 0.06,
-      levels: 6,
-      split: { l1: 0.30, l2: 0.20, l3: 0.15, l4: 0.15, l5: 0.10, l6: 0.10 },
-    },
-  },
-  wallet: {
-    minDeposit: 10,
-    minWithdraw: 20,
-    feePct: 0.01,
-  },
-  admin: {
-    signalControl: true,
-    autoAlgo: true,
-  },
-};
-
-export const seedGlobalSettings = onCall({ region: "asia-southeast1" }, async (request) => {
-    // v2-তে context এখন request.auth-এর ভেতরে থাকে
-    if (request.auth?.token?.role !== "admin") {
-      throw new HttpsError(
-        "permission-denied",
-        "Must be an administrative user to initiate seeding."
-      );
-    }
-    try {
-      const settingsRef = db.doc("settings/global");
-      await settingsRef.set(globalSettings);
-      console.log("Global settings seeded successfully.");
-      return { success: true, message: "Global settings have been seeded." };
-    } catch (error: any) {
-      console.error("Error seeding global settings:", error);
-      throw new HttpsError(
-        "internal",
-        "Could not seed global settings.",
-        error.message
-      );
-    }
-  }
-);
-
-// ========================================================================
-// ## বিভাগ ২: আপনার মূল API (Express App) (v2 সিনট্যাক্স)
-// ========================================================================
-
 const app = express();
 app.use(express.json());
 
 const authMiddleware = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const token = (req.headers.authorization || "").replace("Bearer ","");
+    const token = (req.headers.authorization || "").replace("Bearer ", "");
     if (!token) {
-        return res.status(401).json({ok:false, error:"unauthorized"});
+      return res.status(401).json({ ok: false, error: "unauthorized" });
     }
     const decoded = await admin.auth().verifyIdToken(token);
     req.uid = decoded.uid;
     req.claims = decoded;
     return next();
-  } catch(e) {
-    return res.status(401).json({ok:false, error:"unauthorized"});
+  } catch (e) {
+    return res.status(401).json({ ok: false, error: "unauthorized" });
   }
 };
 
-app.get("/api/wallet/deposit-address", authMiddleware, async (req: Request, res: Response) => {
-    const uid = req.uid as string;
+app.post("/api/wallet/request-deposit", authMiddleware, async (req: Request, res: Response) => {
+    const { amount, currency, txHash } = req.body;
+    const uid = req.uid!;
+
+    if (!amount || !currency || !txHash) {
+        return res.status(400).json({ ok: false, error: "Invalid request payload." });
+    }
+    
     try {
-        const userRef = db.doc(`users/${uid}`);
-        const userDoc = await userRef.get();
-
-        if (!userDoc.exists) {
-            return res.status(404).json({ ok: false, error: "user_not_found" });
-        }
+        const transactionRef = db.collection("transactions").doc();
         
-        const userData = userDoc.data();
-        // Assuming the address is stored in wallets.usdt_bep20
-        const depositAddress = userData?.wallets?.usdt_bep20;
+        await transactionRef.set({
+            userId: uid,
+            type: 'deposit',
+            currency: currency.toUpperCase(),
+            amount: parseFloat(amount),
+            status: 'reviewing', // Admin needs to verify this
+            ref: txHash,
+            meta: {
+                network: 'BEP-20',
+                txHash: txHash,
+            },
+            createdAt: admin.firestore.FieldValue.serverTimestamp(),
+        });
 
-        if (!depositAddress) {
-            // This might happen if the field is not set for the user yet
-            return res.status(404).json({ ok: false, error: "deposit_address_not_assigned" });
-        }
-
-        return res.json({ ok: true, address: depositAddress });
-
-    } catch (error) {
-        console.error("Error fetching deposit address:", error);
-        return res.status(500).json({ ok: false, error: "internal_server_error" });
+        return res.json({ ok: true, message: `Your deposit request for ${amount} ${currency} has been submitted for review.`});
+    } catch (e: any) {
+        console.error("Deposit request submission failed:", e);
+        return res.status(500).json({ ok: false, error: e.message || "An unexpected error occurred." });
     }
 });
 
 
 app.post("/api/staking/open", authMiddleware, async (req: Request, res: Response) => {
-    const { amount, tier, autoCompound=false } = req.body || {};
-    const uid = req.uid as string;
+    const { amount, tier, autoCompound = false } = req.body;
+    const uid = req.uid!;
+
+    if (!amount || !tier || typeof amount !== 'number' || amount <= 0) {
+        return res.status(400).json({ ok: false, error: "invalid_request_payload" });
+    }
+
+    const settingsRef = db.doc("settings/global");
+    const userRef = db.doc(`users/${uid}`);
+    const stakeId = db.collection("stakes").doc().id;
+
     try {
-        const setDoc = await db.doc("settings/global").get();
-        const pkg = setDoc.get(`staking.packages.${tier}`);
-        if(!pkg) return res.status(400).json({ok:false, error:"invalid_tier"});
-        if(amount < pkg.min || amount > pkg.max) return res.status(400).json({ok:false, error:"amount_out_of_range"});
-        const stake = {
-            userId: uid, amount: Number(amount), tier, dailyPct: pkg.dailyPct,
-            autoCompound, status: "active", termDays: setDoc.get("staking.termDays") || 365,
-            startAt: Date.now(), lastAccruedAt: Date.now(), totalAccrued: 0
-        };
-        const ref = await db.collection("stakes").add(stake);
-        return res.json({ ok:true, stakeId: ref.id, dailyPct: stake.dailyPct });
-    } catch (error) {
-        console.error("Error opening stake:", error);
-        return res.status(500).json({ok: false, error: "internal_server_error"});
+        await db.runTransaction(async (tx) => {
+            const settingsDoc = await tx.get(settingsRef);
+            const userDoc = await tx.get(userRef);
+
+            if (!settingsDoc.exists()) throw new Error("Global settings not found.");
+            if (!userDoc.exists()) throw new Error("User not found.");
+
+            const settings = settingsDoc.data()!;
+            const userData = userDoc.data()!;
+            
+            const pkg = settings.staking?.packages?.[tier];
+            if (!pkg) throw new Error("invalid_tier");
+            if (amount < pkg.min || (pkg.max && amount > pkg.max)) {
+                throw new Error(`Amount must be between ${pkg.min} and ${pkg.max}.`);
+            }
+            if ((userData.balances?.usdt || 0) < amount) {
+                throw new Error("Insufficient USDT balance.");
+            }
+            
+            // 1. Deduct USDT balance
+            tx.update(userRef, { "balances.usdt": admin.firestore.FieldValue.increment(-amount) });
+
+            // 2. Create the stake document
+            tx.set(db.doc(`stakes/${stakeId}`), {
+                userId: uid,
+                amount,
+                tier,
+                dailyPct: pkg.dailyPct,
+                autoCompound,
+                status: 'active',
+                termDays: settings.staking?.termDays || 365,
+                startAt: admin.firestore.FieldValue.serverTimestamp(),
+                lastAccruedAt: admin.firestore.FieldValue.serverTimestamp(),
+                totalAccrued: 0,
+            });
+            
+            // 3. Distribute Spot Commissions to upline
+            const spotRates = settings.affiliate?.spot?.rates;
+            const sponsorPath: string[] = userData.referral?.path || [];
+
+            if (sponsorPath.length > 0 && spotRates) {
+                for (let i = 0; i < Math.min(sponsorPath.length, 5); i++) {
+                    const sponsorId = sponsorPath[i];
+                    const level = i + 1;
+                    const rate = spotRates[`l${level}`];
+                    
+                    if (sponsorId && rate > 0) {
+                        const commissionAmount = amount * rate;
+                        const sponsorRef = db.doc(`users/${sponsorId}`);
+                        tx.update(sponsorRef, { "balances.commission": admin.firestore.FieldValue.increment(commissionAmount) });
+
+                        const payoutRef = db.collection("payouts").doc();
+                        tx.set(payoutRef, {
+                            toUserId: sponsorId,
+                            fromUserId: uid,
+                            source: "direct_spot",
+                            level,
+                            amount: commissionAmount,
+                            createdAt: admin.firestore.FieldValue.serverTimestamp(),
+                            stakeId: stakeId,
+                        });
+                    }
+                }
+            }
+        });
+        
+        return res.json({ ok: true, message: `Stake of ${amount} USDT opened successfully.` });
+    } catch (e: any) {
+        console.error("Staking failed:", e);
+        return res.status(500).json({ ok: false, error: e.message || "An unexpected error occurred." });
     }
 });
 
-app.post("/api/trading/join", authMiddleware, async (req: Request, res: Response) => {
-    const uid = req.uid as string;
+app.post('/api/founder/join', authMiddleware, async (req: Request, res: Response) => {
+    const uid = req.uid!;
+    const FOUNDER_COST = 5000;
+    const userRef = db.doc(`users/${uid}`);
+
     try {
-        const setDoc = await db.doc("settings/global").get();
-        const gift = setDoc.get("affiliate.tradingHub.freeJoinGift") || 5;
-        const userRef = db.doc(`users/${uid}`);
         await db.runTransaction(async (tx) => {
             const userDoc = await tx.get(userRef);
-            const joined = userDoc.get("joinedTradingHub") || false;
-            if (!joined) {
-                tx.update(userRef, {
-                    joinedTradingHub: true,
-                    "balances.trading": admin.firestore.FieldValue.increment(gift)
-                });
-            }
-        });
-        return res.json({ ok:true });
-    } catch (error) {
-        console.error("Error joining trading hub:", error);
-        return res.status(500).json({ok: false, error: "internal_server_error"});
-    }
-});
+            if (!userDoc.exists()) throw new Error("User not found.");
 
-app.post("/api/trading/bet", authMiddleware, async (req: Request, res: Response) => {
-    const { sessionId, direction, amount } = req.body || {};
-    const uid = req.uid as string;
-    if(!["rise","fall"].includes(direction)) return res.status(400).json({ok:false, error:"bad_direction"});
-    if(!sessionId || !amount || amount <= 0) return res.status(400).json({ok:false, error:"invalid_payload"});
-    const sRef = db.doc(`tradingSessions/${sessionId}`);
-    const bRef = sRef.collection("bets").doc();
-    try {
-        await db.runTransaction(async (tx) => {
-            const s = await tx.get(sRef);
-            if(!s.exists || s.get("status")!=="open") {
-              throw new Error("session_not_open");
+            const userData = userDoc.data()!;
+            if (userData.isFounder) throw new Error("User is already a founder.");
+            if ((userData.balances?.usdt || 0) < FOUNDER_COST) {
+                throw new Error("Insufficient USDT balance.");
             }
-            const uRef = db.doc(`users/${uid}`);
-            const u = await tx.get(uRef);
-            const bal = (u.get("balances")?.trading || 0);
-            if(bal < amount) {
-              throw new Error("insufficient_trading_balance");
-            }
-            tx.update(uRef, { "balances.trading": admin.firestore.FieldValue.increment(-amount) });
-            tx.set(bRef, {
-                userId: uid, direction, amount: Number(amount),
-                createdAt: Date.now(), result: "pending"
+
+            // 1. Deduct cost & update status
+            tx.update(userRef, {
+                "balances.usdt": admin.firestore.FieldValue.increment(-FOUNDER_COST),
+                isFounder: true
+            });
+
+            // 2. Create a transaction log
+            const transactionRef = db.collection("transactions").doc();
+            tx.set(transactionRef, {
+                userId: uid,
+                type: 'founder_purchase',
+                currency: 'USDT',
+                amount: FOUNDER_COST,
+                status: 'confirmed',
+                ref: `FOUNDER-${uid}`,
+                meta: { description: 'Founder Membership Purchase' },
+                createdAt: admin.firestore.FieldValue.serverTimestamp(),
             });
         });
-        return res.json({ ok:true, betId: bRef.id });
-    } catch (error: any) {
-        console.error("Error placing bet:", error);
-        return res.status(400).json({ok: false, error: error.message || "bet_placement_failed"});
+
+        return res.json({ ok: true, message: "Congratulations! You are now a Founder Member." });
+    } catch (e: any) {
+        console.error("Becoming a founder failed:", e);
+        return res.status(500).json({ ok: false, error: e.message || "An unexpected error occurred." });
     }
 });
 
-app.get("/api/affiliate/summary", authMiddleware, async (req: Request, res: Response) => {
-    const uid = req.uid as string;
 
-    try {
-        const usersRef = db.collection("users");
-        
-        // 1. Get current user's document for total commission
-        const userDoc = await usersRef.doc(uid).get();
-        const totalCommission = userDoc.data()?.balances?.commission || 0;
-        
-        // 2. Count direct referrals
-        const directsQuery = usersRef.where("referral.sponsorId", "==", uid);
-        const directsSnapshot = await directsQuery.count().get();
-        const directsCount = directsSnapshot.data().count;
+export const api = onRequest(
+  { region: "asia-southeast1", secrets: ["SENDGRID_API_KEY"] },
+  app
+);
 
-        // 3. Count total team members
-        const totalTeamQuery = usersRef.where("referral.path", "array-contains", uid);
-        const totalTeamSnapshot = await totalTeamQuery.count().get();
-        const totalTeamCount = totalTeamSnapshot.data().count;
+export const onnewusercreate = onUserCreated({
+  region: "asia-southeast1",
+  secrets: ["SENDGRID_API_KEY"],
+}, async (event) => {
+  const user = event.data;
+  if (!user.email) {
+    console.error(`User ${user.uid} has no email.`);
+    return;
+  }
+  
+  // SendGrid API key should be set in environment variables
+  const apiKey = process.env.SENDGRID_API_KEY;
+  if(!apiKey) {
+      console.error("SENDGRID_API_KEY not set.");
+      return;
+  }
+  sgMail.setApiKey(apiKey);
 
-        // 4. Calculate today's commissions (more complex, requires querying payouts)
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        const tomorrow = new Date(today);
-        tomorrow.setDate(tomorrow.getDate() + 1);
-
-        const payoutsRef = db.collection("payouts");
-        const todayCommissionsQuery = await payoutsRef
-            .where("toUserId", "==", uid)
-            .where("createdAt", ">=", admin.firestore.Timestamp.fromDate(today))
-            .where("createdAt", "<", admin.firestore.Timestamp.fromDate(tomorrow))
-            .get();
-            
-        let todayCommission = 0;
-        todayCommissionsQuery.forEach(doc => {
-            todayCommission += doc.data().amount || 0;
-        });
-        
-        const summaryData = {
-            directs: directsCount,
-            totalTeam: totalTeamCount,
-            totalCommission: totalCommission,
-            todayCommission: todayCommission,
-        };
-
-        return res.json({ ok: true, summary: summaryData });
-
-    } catch (error) {
-        console.error("Error fetching affiliate summary:", error);
-        return res.status(500).json({ ok: false, error: "internal_server_error" });
+  const displayName = user.displayName || "Pioneer";
+  const welcomeEmail = {
+    to: user.email,
+    from: {
+        name: 'Phiquence Team',
+        email: 'welcome@phiquence.com' // Ensure this is a verified sender in SendGrid
+    },
+    templateId: 'd-your-template-id', // Replace with your Dynamic Template ID from SendGrid
+    dynamicTemplateData: {
+      subject: `Welcome to PHIQUENCE, ${displayName}!`,
+      name: displayName,
+      cta_link: 'https://phiquence-ndim2.web.app/login' // Your app's login page
+    },
+  };
+  
+  try {
+    // For now, sending a simple HTML email if template is not set up
+    // In production, you would remove this and only use the template
+    await sgMail.send({
+      ...welcomeEmail,
+      // Fallback HTML content if template fails or is not provided
+      html: `
+        <div style="font-family: Arial, sans-serif; line-height: 1.6;">
+          <h2>Welcome to PHIQUENCE, ${displayName}!</h2>
+          <p>We are thrilled to have you on board. You've just taken the first step towards achieving true financial balance and real growth.</p>
+          <p>Here are a few things you can do to get started:</p>
+          <ul>
+            <li>Explore your personalized dashboard.</li>
+            <li>Check out our staking packages to grow your assets.</li>
+            <li>Find your unique referral link in the affiliate center.</li>
+          </ul>
+          <p>If you have any questions, our support team is always here to help.</p>
+          <a href="${welcomeEmail.dynamicTemplateData.cta_link}" style="background-color: #007bff; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; display: inline-block;">Go to Dashboard</a>
+          <br><br>
+          <p>Best regards,</p>
+          <p>The Phiquence Team</p>
+        </div>
+      `,
+    });
+    console.log(`Welcome email sent to ${user.email}`);
+  } catch (error) {
+    console.error("Error sending welcome email:", error);
+    if ((error as any).response) {
+      console.error((error as any).response.body)
     }
+  }
 });
-
-export const api = onRequest({ region: "asia-southeast1" }, app);

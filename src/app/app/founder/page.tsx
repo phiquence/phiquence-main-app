@@ -22,32 +22,15 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { useUserData } from '@/hooks/use-auth';
 
 const FOUNDER_COST = 5000;
 
 export default function FounderPage() {
   const { user } = useAuth();
+  const { userData, loading, error } = useUserData();
   const { toast } = useToast();
-  const [userData, setUserData] = useState<UserData | null>(null);
-  const [loading, setLoading] = useState(true);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (user) {
-      const unsubscribe = getUserData(user.uid, 
-        (data) => {
-          setUserData(data);
-          setLoading(false);
-        }, 
-        (err) => {
-          setError("Could not fetch user data.");
-          setLoading(false);
-        }
-      );
-      return () => unsubscribe();
-    }
-  }, [user]);
 
   const handleBecomeFounder = async () => {
     if (!user) return;
@@ -72,7 +55,7 @@ export default function FounderPage() {
 
   const formatCurrency = (amount: number = 0) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount);
 
-  const isFounder = (userData as any)?.isFounder || false;
+  const isFounder = userData?.isFounder || false;
   const usdtBalance = userData?.balances?.usdt || 0;
   const canAfford = usdtBalance >= FOUNDER_COST;
 
