@@ -45,6 +45,25 @@ export const getTransactions = (
     return unsubscribe;
 }
 
+// Function to get the user's deposit address from our API
+export const getDepositAddress = async (token: string): Promise<{ ok: boolean; address: string }> => {
+    const response = await fetch('/api/wallet/deposit-address', {
+        method: 'GET',
+        headers: {
+            'Authorization': `Bearer ${token}`
+        },
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+        throw new Error(data.error || 'Failed to fetch deposit address.');
+    }
+
+    return data;
+};
+
+
 // This function now only submits a request. The actual balance update will be handled by an admin/backend process.
 export const submitDepositRequest = async (token: string, amount: number, currency: 'USDT' | 'BNB' | 'PHI', txHash: string): Promise<{ ok: boolean; message: string }> => {
     const response = await fetch('/api/wallet/request-deposit', {

@@ -106,9 +106,12 @@ app.post('/wallet/webhook', async (c) => {
         }
         
         let currency: 'USDT' | 'BNB' | 'PHI' | null = null;
-        if (tokenAddress.toLowerCase() === process.env.NEXT_PUBLIC_USDT_CONTRACT_ADDRESS?.toLowerCase()) {
+        const usdtContract = process.env.NEXT_PUBLIC_USDT_CONTRACT_ADDRESS?.toLowerCase();
+        const phiContract = process.env.NEXT_PUBLIC_PHI_CONTRACT_ADDRESS?.toLowerCase();
+
+        if (usdtContract && tokenAddress.toLowerCase() === usdtContract) {
             currency = 'USDT';
-        } else if (tokenAddress.toLowerCase() === process.env.NEXT_PUBLIC_PHI_CONTRACT_ADDRESS?.toLowerCase()) {
+        } else if (phiContract && tokenAddress.toLowerCase() === phiContract) {
             currency = 'PHI';
         }
 
@@ -166,6 +169,7 @@ app.use('*', authMiddleware);
 /**
  * Route: GET /api/wallet/deposit-address
  * Retrieves the user's pre-assigned deposit address.
+ * If an address doesn't exist, it creates and saves one.
  */
 app.get('/wallet/deposit-address', async (c) => {
     try {
@@ -178,14 +182,18 @@ app.get('/wallet/deposit-address', async (c) => {
         }
 
         const userData = userDoc.data();
-        const depositAddress = userData?.wallets?.usdt_bep20;
+        let depositAddress = userData?.wallets?.usdt_bep20;
 
+        // If address doesn't exist, create and save one.
         if (!depositAddress) {
-            // If address doesn't exist, create one
-            // In a real app, this might come from a wallet generation service
             const newAddress = ethers.Wallet.createRandom().address;
-            await userRef.update({ 'wallets.usdt_bep20': newAddress });
-            return c.json({ ok: true, address: newAddress });
+            await userRef.set({ 
+                wallets: { 
+                    ...userData?.wallets,
+                    usdt_bep20: newAddress 
+                } 
+            }, { merge: true });
+            depositAddress = newAddress;
         }
 
         return c.json({ ok: true, address: depositAddress });

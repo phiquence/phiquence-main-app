@@ -1,20 +1,20 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
 import QRCode from 'qrcode.react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Loader2, AlertTriangle, Copy, Wallet, UploadCloud } from 'lucide-react';
+import { Loader2, AlertTriangle, Copy, Wallet, UploadCloud, ArrowDownLeft, ArrowUpRight } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { submitDepositRequest } from '@/services/wallet.service';
+import { submitDepositRequest, getDepositAddress } from '@/services/wallet.service';
 import { useUserData } from '@/hooks/use-auth';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
@@ -29,8 +29,31 @@ export default function WalletPage() {
   const { userData, loading: userDataLoading, error: userDataError } = useUserData();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
-  
-  const depositAddress = userData?.wallets?.usdt_bep20;
+  const [depositAddress, setDepositAddress] = useState<string | null>(null);
+  const [isAddressLoading, setIsAddressLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchAddress = async () => {
+      if (user) {
+        try {
+          setIsAddressLoading(true);
+          const token = await user.getIdToken();
+          const data = await getDepositAddress(token);
+          setDepositAddress(data.address);
+        } catch (error: any) {
+          toast({
+            title: "Could not fetch deposit address",
+            description: error.message || "Please try again later.",
+            variant: "destructive"
+          });
+        } finally {
+          setIsAddressLoading(false);
+        }
+      }
+    };
+    fetchAddress();
+  }, [user, toast]);
+
 
   const copyToClipboard = () => {
     if(!depositAddress) return;
@@ -69,13 +92,13 @@ export default function WalletPage() {
     <div className="space-y-8">
       <header>
         <h1 className="text-3xl font-bold tracking-tight font-headline">My Wallet</h1>
-        <p className="text-muted-foreground">Manage your funds and transactions.</p>
+        <p className="text-muted-foreground">Manage your funds and view your transaction history.</p>
       </header>
 
       <Tabs defaultValue="deposit" className="w-full">
         <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="deposit">Deposit</TabsTrigger>
-            <TabsTrigger value="withdraw" disabled>Withdraw (Coming Soon)</TabsTrigger>
+            <TabsTrigger value="deposit"><ArrowDownLeft className="mr-2 h-4 w-4" />Deposit</TabsTrigger>
+            <TabsTrigger value="withdraw" disabled><ArrowUpRight className="mr-2 h-4 w-4" />Withdraw (Soon)</TabsTrigger>
         </TabsList>
         <TabsContent value="deposit">
              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mt-4">
@@ -87,16 +110,16 @@ export default function WalletPage() {
                         </CardDescription>
                     </CardHeader>
                     <CardContent className="text-center">
-                    {userDataLoading ? (
-                        <div className="space-y-6 pt-4">
-                            <div className="p-4 bg-muted rounded-lg flex justify-center animate-pulse h-[232px] w-[232px] mx-auto"></div>
-                            <div className="flex gap-2"><Input readOnly className="text-center text-sm bg-muted animate-pulse" /><Button variant="outline" size="icon" disabled><Copy className="h-4 w-4" /></Button></div>
+                    {isAddressLoading ? (
+                        <div className="flex flex-col items-center justify-center space-y-4 pt-4 h-[350px]">
+                            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                            <p className="text-muted-foreground">Generating your address...</p>
                         </div>
                     ) : !depositAddress ? (
-                        <Alert variant="destructive"><AlertTriangle className="h-4 w-4" /><AlertTitle>Address Not Found</AlertTitle><AlertDescription>Your deposit address is not yet assigned. Please contact support.</AlertDescription></Alert>
+                        <Alert variant="destructive"><AlertTriangle className="h-4 w-4" /><AlertTitle>Address Not Found</AlertTitle><AlertDescription>Your deposit address could not be generated. Please contact support.</AlertDescription></Alert>
                     ) : (
                         <div className="space-y-6 pt-4 animate-in fade-in-50">
-                        <div className="p-4 bg-background rounded-lg flex justify-center">
+                        <div className="p-4 bg-background rounded-lg flex justify-center border">
                             <QRCode value={depositAddress} size={200} bgColor="hsl(var(--background))" fgColor="hsl(var(--foreground))" />
                         </div>
                         <div className="space-y-2">
