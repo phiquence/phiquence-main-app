@@ -24,6 +24,7 @@ import {
     Crown,
     Gift,
     Trophy,
+    Map,
 } from "lucide-react";
 import { Logo } from "@/components/logo";
 import { Button } from '../ui/button';
@@ -39,6 +40,7 @@ const menuItems = [
     { href: "/app/staking", label: "Staking", icon: CircleDollarSign },
     { href: "/app/trading-hub", label: "Trading Hub", icon: CandlestickChart },
     { href: "/app/affiliate", label: "Affiliate", icon: Users },
+    { href: "/app/golden-journey", label: "The Golden Journey", icon: Map },
     { href: "/app/tournament", label: "Tournament", icon: Trophy },
     { href: "/app/mystery-box", label: "Mystery Box", icon: Gift },
     { href: "/app/support", label: "Support", icon: LifeBuoy },
