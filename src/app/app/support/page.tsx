@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { AiSupportForm } from "@/components/app/ai-support-form";
-import { Bot, FileQuestion, UploadCloud, Camera, UserCheck } from "lucide-react";
+import { Bot, FileQuestion, UploadCloud, Camera, UserCheck, Volume2 } from "lucide-react";
 import Script from "next/script";
 import { useEffect, useRef, useState } from "react";
 import { useToast } from "@/hooks/use-toast";
@@ -71,6 +71,13 @@ export default function SupportPage() {
     getCameraPermission();
   }
 
+  const handleListen = () => {
+    toast({
+      title: "Feature Coming Soon!",
+      description: "AI Text-to-Speech functionality will be available shortly.",
+    });
+  }
+
 
   return (
     <div className="space-y-8 max-w-4xl mx-auto">
@@ -82,10 +89,18 @@ export default function SupportPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
         <Card className="md:col-span-2">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2"><Bot /> AI-Powered Support</CardTitle>
-            <CardDescription>
-              Have a question? Get instant answers from our AI assistant. Select your preferred language and describe your issue.
-            </CardDescription>
+             <div className="flex justify-between items-start">
+                <div>
+                    <CardTitle className="flex items-center gap-2"><Bot /> AI-Powered Support</CardTitle>
+                    <CardDescription>
+                    Have a question? Get instant answers from our AI assistant.
+                    </CardDescription>
+                </div>
+                 <Button variant="outline" size="icon" onClick={handleListen} disabled>
+                    <Volume2 className="h-4 w-4"/>
+                    <span className="sr-only">Listen to response</span>
+                </Button>
+            </div>
           </CardHeader>
           <CardContent className="space-y-4">
             <AiSupportForm />
@@ -147,10 +162,12 @@ export default function SupportPage() {
               id="jotform-agent"
               src="https://cdn.jotfor.ms/agent/embed.js"
               onLoad={() => {
-                (window as any).JotformAgent?.init({
-                  autoOpen: false,
-                  agentId: "01986f2f3c3473c2a87de15da94a6ac0d481",
-                });
+                if ((window as any).JotformAgent) {
+                    (window as any).JotformAgent.init({
+                        autoOpen: false,
+                        agentId: "01986f2f3c3473c2a87de15da94a6ac0d481",
+                    });
+                }
               }}
               strategy="lazyOnload"
             />
@@ -161,3 +178,5 @@ export default function SupportPage() {
     </div>
   );
 }
+
+    

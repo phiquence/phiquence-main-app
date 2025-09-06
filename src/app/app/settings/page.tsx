@@ -12,7 +12,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { Loader2, AlertTriangle, ShieldAlert } from 'lucide-react';
+import { Loader2, AlertTriangle, ShieldAlert, Fingerprint } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -185,12 +185,13 @@ export default function SettingsPage() {
 
              <Card>
                 <CardHeader>
-                  <CardTitle>Change Password</CardTitle>
-                  <CardDescription>Set a new password for your account.</CardDescription>
+                  <CardTitle>Security</CardTitle>
+                  <CardDescription>Manage your password and other security settings.</CardDescription>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="space-y-6">
                     <Form {...passwordForm}>
                         <form onSubmit={passwordForm.handleSubmit(handlePasswordChange)} className="space-y-4">
+                            <h3 className="font-semibold text-lg">Change Password</h3>
                             <FormField
                             control={passwordForm.control}
                             name="newPassword"
@@ -223,6 +224,14 @@ export default function SettingsPage() {
                             </Button>
                         </form>
                     </Form>
+                    <div className="border-t pt-6">
+                        <h3 className="font-semibold text-lg">Passkey Authentication</h3>
+                        <p className="text-sm text-muted-foreground mb-4">Sign in with your face, fingerprint, or a hardware key. No password needed.</p>
+                        <Button variant="outline" disabled>
+                           <Fingerprint className="mr-2 h-4 w-4"/>
+                           Add a passkey (Coming Soon)
+                        </Button>
+                    </div>
                 </CardContent>
             </Card>
         </div>
@@ -270,3 +279,5 @@ export default function SettingsPage() {
     </div>
   );
 }
+
+    

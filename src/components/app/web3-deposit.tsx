@@ -25,7 +25,7 @@ const motherWallets = {
 };
 
 const tokenContracts = {
-    USDT: '0x55d398326f99059fF775485246999027B3197955',
+    USDT: process.env.NEXT_PUBLIC_USDT_CONTRACT_ADDRESS,
     PHI: process.env.NEXT_PUBLIC_PHI_CONTRACT_ADDRESS,
 };
 
@@ -121,8 +121,8 @@ export function Web3Deposit() {
         setIsLoading(true);
 
         const motherWallet = motherWallets[currency];
-        if (!motherWallet) {
-            setError(`Mother wallet for ${currency} is not configured.`);
+        if (!motherWallet || motherWallet.includes('YOUR_')) {
+            setError(`The destination wallet for ${currency} is not configured correctly. Please contact support.`);
             setIsLoading(false);
             return;
         }
@@ -135,7 +135,7 @@ export function Web3Deposit() {
                 tx = await signer.sendTransaction({ to: motherWallet, value });
             } else {
                 const tokenAddress = tokenContracts[currency];
-                if (!tokenAddress) throw new Error(`Contract address for ${currency} is missing.`);
+                if (!tokenAddress || tokenAddress.includes('YOUR_')) throw new Error(`Contract address for ${currency} is not configured.`);
                 
                 const tokenContract = new ethers.Contract(tokenAddress, ERC20_ABI, signer);
                 const decimals = await tokenContract.decimals();
@@ -172,7 +172,7 @@ export function Web3Deposit() {
         return (
             <div className="flex flex-col items-center justify-center space-y-4 p-4 border-2 border-dashed rounded-lg">
                 <Wallet className="h-10 w-10 text-muted-foreground"/>
-                <p className="text-center text-muted-foreground">Connect your Web3 wallet to deposit funds.</p>
+                <p className="text-center text-muted-foreground">Connect your Web3 wallet to make a direct deposit.</p>
                 <Button onClick={connectWallet} disabled={isLoading}>
                     {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                     Connect Wallet
@@ -222,3 +222,5 @@ export function Web3Deposit() {
         </div>
     );
 }
+
+    
