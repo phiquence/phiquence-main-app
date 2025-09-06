@@ -3,7 +3,7 @@
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ArrowUpRight, DollarSign, Users, Zap, Loader2, AlertTriangle, Star, CheckCircle, BarChart3, TrendingUp, Bell, ShieldAlert, BadgeHelp } from "lucide-react";
+import { ArrowUpRight, DollarSign, Users, Zap, Loader2, AlertTriangle, Star, CheckCircle, BarChart3, TrendingUp, Bell, ShieldAlert, BadgeHelp, Crown, Award, Megaphone } from "lucide-react";
 import Link from "next/link";
 import { useUserData } from "@/hooks/use-auth";
 import { TradingChart } from "@/components/app/trading-chart";
@@ -39,21 +39,134 @@ function StatCard({ icon: Icon, title, value, footer, valueClassName, isLoading 
   );
 }
 
+function FounderDashboard({ userData, loading, formatCurrency }: { userData: any, loading: boolean, formatCurrency: (amount?: number) => string }) {
+    const teamStats = userData?.teamStats || { directs: 0, total: 0, dailyIncome: 0};
+    
+    return (
+         <div className="space-y-8">
+            <header className="relative overflow-hidden rounded-xl p-8 bg-gradient-to-br from-gray-900 via-gray-800 to-black text-white shadow-2xl">
+                <div className="absolute top-0 right-0 -mt-10 -mr-10 opacity-10">
+                    <Crown className="h-48 w-48 text-yellow-400" />
+                </div>
+                <div className="relative">
+                     <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight font-headline mb-2 text-transparent bg-clip-text bg-gradient-to-r from-yellow-300 to-yellow-500">
+                        Founder's Dashboard
+                    </h1>
+                    <p className="text-base sm:text-lg text-gray-300 max-w-3xl">
+                        Welcome, {loading ? <Skeleton className="h-6 w-32 inline-block bg-gray-600" /> : (userData?.name || 'Honored Founder')}! Access your exclusive tools and insights.
+                    </p>
+                </div>
+            </header>
+            
+             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <Card className="bg-gray-800 border-gray-700 text-white">
+                    <CardHeader className="flex flex-row items-center justify-between pb-2">
+                        <CardTitle className="text-sm font-medium text-yellow-400">Daily Founder Reward</CardTitle>
+                        <Zap className="h-5 w-5 text-yellow-400" />
+                    </CardHeader>
+                    <CardContent>
+                        <p className="text-4xl font-bold">1.2%</p>
+                        <p className="text-xs text-gray-400">Guaranteed daily reward on your stake.</p>
+                    </CardContent>
+                </Card>
+                 <Card className="bg-gray-800 border-gray-700 text-white">
+                    <CardHeader className="flex flex-row items-center justify-between pb-2">
+                        <CardTitle className="text-sm font-medium text-yellow-400">Monthly Founder Bonus</CardTitle>
+                        <Award className="h-5 w-5 text-yellow-400" />
+                    </CardHeader>
+                    <CardContent>
+                        <p className="text-4xl font-bold">5-10%</p>
+                        <p className="text-xs text-gray-400">Performance-based monthly bonus.</p>
+                    </CardContent>
+                </Card>
+                 <Card className="bg-gray-800 border-gray-700 text-white">
+                    <CardHeader className="flex flex-row items-center justify-between pb-2">
+                        <CardTitle className="text-sm font-medium text-yellow-400">Total Pending Rewards</CardTitle>
+                        <DollarSign className="h-5 w-5 text-yellow-400" />
+                    </CardHeader>
+                    <CardContent>
+                        <p className="text-4xl font-bold">{formatCurrency(userData?.balances?.reward)}</p>
+                        <p className="text-xs text-gray-400">From all sources.</p>
+                    </CardContent>
+                </Card>
+            </div>
 
-export default function DashboardPage() {
-  const { userData, loading, error } = useUserData();
+            <Card>
+                <CardHeader>
+                    <CardTitle>Real-time Reward Tracking</CardTitle>
+                    <CardDescription>Live updates on when and how your rewards are being added.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    {loading ? (
+                        <div className="h-[400px] flex items-center justify-center">
+                             <Skeleton className="h-full w-full" />
+                        </div>
+                    ) : (
+                        <TradingChart data={[]} />
+                    )}
+                </CardContent>
+            </Card>
+            
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <Card>
+                  <CardHeader>
+                      <CardTitle>Team Snapshot</CardTitle>
+                  </CardHeader>
+                  <CardContent className="grid grid-cols-3 gap-4 text-center">
+                      {loading ? (
+                          <>
+                            <StatSkeleton />
+                            <StatSkeleton />
+                            <StatSkeleton />
+                          </>
+                      ) : (
+                        <>
+                          <div>
+                              <p className="text-2xl font-bold">{teamStats.directs}</p>
+                              <p className="text-sm text-muted-foreground">Directs</p>
+                          </div>
+                           <div>
+                              <p className="text-2xl font-bold">{teamStats.total}</p>
+                              <p className="text-sm text-muted-foreground">Total Team</p>
+                          </div>
+                           <div>
+                              <p className="text-2xl font-bold text-green-500">{formatCurrency(teamStats.dailyIncome)}</p>
+                              <p className="text-sm text-muted-foreground">Today's Income</p>
+                          </div>
+                        </>
+                      )}
+                  </CardContent>
+                  <CardFooter>
+                    <Button variant="outline" className="w-full" asChild>
+                        <Link href="/app/affiliate">View Affiliate Center</Link>
+                    </Button>
+                  </CardFooter>
+               </Card>
+               
+               <Card>
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2"><Megaphone className="text-primary"/> Founder Announcements</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                        <Alert>
+                            <ShieldAlert className="h-4 w-4" />
+                            <AlertTitle>Q4 Roadmap Briefing</AlertTitle>
+                            <AlertDescription>
+                            An exclusive briefing on the upcoming Q4 roadmap will be held for all Founder members next week.
+                            </AlertDescription>
+                        </Alert>
+                    </CardContent>
+                </Card>
+            </div>
+         </div>
+    );
+}
 
-  const formatCurrency = (amount: number = 0) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-    }).format(amount);
-  };
-  
+
+function RegularDashboard({ userData, loading, error, formatCurrency }: { userData: any, loading: boolean, error: string | null, formatCurrency: (amount?: number) => string }) {
   const balances = userData?.balances || { usdt: 0, bnb: 0, phi: 0, reward: 0, commission: 0, trading: 0 };
   const teamStats = userData?.teamStats || { directs: 0, total: 0, dailyIncome: 0};
-
-
+  
   return (
     <div className="space-y-8">
       <header className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
@@ -226,7 +339,33 @@ export default function DashboardPage() {
         </div>
       </div>
     </div>
-  )
+  );
+}
+
+
+export default function DashboardPage() {
+  const { userData, loading, error } = useUserData();
+
+  const formatCurrency = (amount: number = 0) => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+    }).format(amount);
+  };
+  
+  if (loading) {
+    return (
+        <div className="flex items-center justify-center p-8">
+            <Loader2 className="h-10 w-10 animate-spin text-primary" />
+        </div>
+    );
+  }
+  
+  if (userData?.isFounder) {
+    return <FounderDashboard userData={userData} loading={loading} formatCurrency={formatCurrency} />;
+  }
+  
+  return <RegularDashboard userData={userData} loading={loading} error={error} formatCurrency={formatCurrency} />;
 }
 
 const StatSkeleton = () => (
