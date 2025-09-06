@@ -2,7 +2,7 @@
 'use client';
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { CheckCircle, Clock, DraftingCompass, FlaskConical, Target, Milestone, Bot, LineChart, Rocket } from "lucide-react";
+import { CheckCircle, Clock, DraftingCompass, FlaskConical, Target, Milestone, Bot, LineChart, Rocket, Atom } from "lucide-react";
 import { useUserData } from "@/hooks/use-auth";
 
 const statusConfig = {
@@ -73,6 +73,12 @@ const phase3Features = [
         description: "The doors to the Billionaire's Club will open for those who meet our targets, offering incredible opportunities and an elite investment world.",
         status: "research" as Status,
     },
+    {
+        icon: Atom,
+        title: "The Emotion-Based Exchanger (2026)",
+        description: "Witness history. We are building the world's first and only emotion-based exchanger. Today's Founder Members are truly fortunate to be part of this legendary, game-changing revolution in finance.",
+        status: "research" as Status,
+    },
 ];
 
 
@@ -134,24 +140,31 @@ const PhaseSection = ({ phaseNumber, title, icon: Icon, features, userData }: { 
 const FeatureCard = ({ feature, userData }: { feature: any, userData: any }) => {
     const status = statusConfig[feature.status];
     const StatusIcon = status.icon;
+    const FeatureIcon = feature.icon;
 
     return (
-        <Card className="bg-gray-800/50 border-gray-700 hover:border-primary/50 hover:-translate-y-1 transition-all duration-300 group">
+        <Card className="bg-gray-800/50 border-gray-700 hover:border-primary/50 hover:-translate-y-1 transition-all duration-300 group flex flex-col">
             <CardHeader>
                  <div className={`inline-flex items-center gap-2 text-xs font-semibold px-3 py-1 rounded-full self-start ${status.bgColor} ${status.color}`}>
                     <StatusIcon className="h-4 w-4"/>
                     <span>{status.text}</span>
                 </div>
             </CardHeader>
-            <CardContent className="space-y-3">
-                <CardTitle className="text-lg group-hover:text-primary transition-colors">{feature.title}</CardTitle>
+            <CardContent className="space-y-3 flex-grow">
+                <div className="flex items-center gap-3">
+                    {FeatureIcon && <FeatureIcon className="h-7 w-7 text-primary" />}
+                    <CardTitle className="text-lg group-hover:text-primary transition-colors">{feature.title}</CardTitle>
+                </div>
                 <p className="text-sm text-muted-foreground">{feature.description}</p>
-                {feature.progress && (
-                    <div className="mt-4 text-xs text-primary/80 italic p-3 bg-primary/10 rounded-lg border border-primary/20">
+            </CardContent>
+            {feature.progress && (
+                <div className="p-6 pt-0">
+                    <div className="text-xs text-primary/80 italic p-3 bg-primary/10 rounded-lg border border-primary/20">
                         {feature.progress(userData)}
                     </div>
-                )}
-            </CardContent>
+                </div>
+            )}
         </Card>
     );
 }
+
