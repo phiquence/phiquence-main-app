@@ -1,7 +1,8 @@
 
 'use client';
 
-import { AppSidebar, SidebarProvider, SidebarInset } from '@/components/app/sidebar';
+import { AppSidebar } from '@/components/app/sidebar';
+import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar';
 import { UserDataProvider } from '@/hooks/use-auth';
 
 export default function AppLayout({
