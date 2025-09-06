@@ -60,12 +60,7 @@ export const onnewusercreate = onUserCreated({
     return;
   }
   
-  const apiKey = process.env.SENDGRID_API_KEY;
-  if(!apiKey) {
-      console.error("SENDGRID_API_KEY not set.");
-      return;
-  }
-  sgMail.setApiKey(apiKey);
+  sgMail.setApiKey(process.env.SENDGRID_API_KEY!);
 
   const displayName = user.displayName || "Pioneer";
   
