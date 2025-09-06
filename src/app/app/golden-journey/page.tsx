@@ -2,75 +2,75 @@
 'use client';
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { CheckCircle, Clock, DraftingCompass, FlaskConical, Target, Milestone, Bot, LineChart } from "lucide-react";
+import { CheckCircle, Clock, DraftingCompass, FlaskConical, Target, Milestone, Bot, LineChart, Rocket } from "lucide-react";
 import { useUserData } from "@/hooks/use-auth";
 
-const statusIcons = {
-    active: { icon: CheckCircle, text: "অ্যাক্টিভ", color: "text-green-500", bgColor: "bg-green-500/10" },
-    coming_soon: { icon: Clock, text: "শীঘ্রই আসছে", color: "text-yellow-500", bgColor: "bg-yellow-500/10" },
-    planned: { icon: DraftingCompass, text: "পরিকল্পনাধীন", color: "text-blue-500", bgColor: "bg-blue-500/10" },
-    research: { icon: FlaskConical, text: "গবেষণা পর্যায়ে", color: "text-purple-500", bgColor: "bg-purple-500/10" },
+const statusConfig = {
+    active: { text: "Active", icon: CheckCircle, color: "text-green-400", bgColor: "bg-green-400/10" },
+    coming_soon: { text: "Coming Soon", icon: Clock, color: "text-yellow-400", bgColor: "bg-yellow-400/10" },
+    planned: { text: "Planned", icon: DraftingCompass, color: "text-blue-400", bgColor: "bg-blue-400/10" },
+    research: { text: "Research", icon: FlaskConical, color: "text-purple-400", bgColor: "bg-purple-400/10" },
 };
 
-type Status = keyof typeof statusIcons;
+type Status = keyof typeof statusConfig;
 
 const phase1Features = [
     {
-        title: "স্মার্ট ওয়ালেট সিস্টেম",
-        description: "আপনার আর্থিক লেনদেনের সম্পূর্ণ স্বাধীনতা এখন আপনার হাতে। স্বয়ংক্রিয় ডিপোজিট ও উইথড্র সিস্টেমের মাধ্যমে আপনার প্রতিটি লেনদেন হবে দ্রুত এবং নিরাপদ।",
+        title: "Smart Wallet System",
+        description: "Full control over your finances is now in your hands. With our automated deposit and withdrawal system, every transaction is fast and secure.",
         status: "active" as Status,
-        progress: (userData: any) => `আপনি সফলভাবে ${userData?.transactions?.length || 0} টি লেনদেন সম্পন্ন করেছেন।`
+        progress: (userData: any) => `You have successfully completed ${userData?.transactions?.length || 0} transactions.`
     },
     {
-        title: "ফাউন্ডার ক্লাব অ্যাক্টিভেশন",
-        description: "ফাউন্ডার ক্লাবের বিশেষ সদস্য হিসেবে আপনার যাত্রা শুরু হয়েছে। এখন থেকে উপভোগ করুন প্রতিদিন ১.২% রিওয়ার্ড এবং আপনার জন্য তৈরি বিশেষ ড্যাশবোর্ড।",
+        title: "Founder's Club Activation",
+        description: "Your journey as a special member of the Founder's Club has begun. Enjoy a 1.2% daily reward and your exclusive dashboard.",
         status: "active" as Status,
-        progress: (userData: any) => userData?.isFounder ? "ফাউন্ডার হিসেবে আপনার দৈনিক রিওয়ার্ড শুরু হয়েছে।" : "ফাউন্ডার হতে এখানে ক্লিক করুন।"
+        progress: (userData: any) => userData?.isFounder ? "Your daily Founder reward is active." : "Click here to become a Founder."
     },
     {
-        title: "প্রথম ধাপের অ্যাফিলিয়েট প্রোগ্রাম",
-        description: "আপনার নিজস্ব রেফারেল লিঙ্ক তৈরি করে অন্যদের আমন্ত্রণ জানান এবং আপনার নেটওয়ার্ক থেকে আয় করার প্রস্তুতি নিন। আপনার সাফল্যের যাত্রা এবার অন্যদের সাথে ভাগ করে নেওয়ার পালা।",
+        title: "Initial Affiliate Program",
+        description: "Generate your unique referral link, invite others, and prepare to earn from your network. It's time to share your success journey.",
         status: "coming_soon" as Status,
     },
     {
-        title: "লক্ষ্য নির্ধারণ টুল",
-        description: "আপনার মাসিক আয়ের লক্ষ্য নির্ধারণ করুন। আমাদের সিস্টেম আপনাকে সেই লক্ষ্যে পৌঁছানোর জন্য সঠিক পথ দেখাবে।",
+        title: "Goal Setting Tool",
+        description: "Define your monthly income goals. Our system will guide you on the right path to achieve them.",
         status: "coming_soon" as Status,
     },
 ];
 
 const phase2Features = [
     {
-        title: "অ্যাডভান্সড অ্যাফিলিয়েট ড্যাশবোর্ড",
-        description: "আপনার অ্যাফিলিয়েট নেটওয়ার্ককে আরও শক্তিশালী করতে আসছে নতুন সব টুলস। আপনার টিমের পারফরম্যান্স ট্র্যাক করুন এবং আপনার নেতৃত্বকে এক নতুন উচ্চতায় নিয়ে যান।",
+        title: "Advanced Affiliate Dashboard",
+        description: "New tools are coming to strengthen your affiliate network. Track your team's performance and take your leadership to the next level.",
         status: "planned" as Status,
     },
     {
-        title: "গোল্ডেন স্টেকিং পুল",
-        description: "সাধারণ আয়ের বাইরেও অতিরিক্ত মুনাফার সুযোগ। বিশেষ স্টেকিং পুলের মাধ্যমে আপনার বিনিয়োগের শক্তিকে বহুগুণে বাড়িয়ে তুলুন।",
+        title: "Golden Staking Pool",
+        description: "An opportunity for extra profit beyond standard earnings. Multiply the power of your investment through a special staking pool.",
         status: "planned" as Status,
     },
     {
-        title: "মাসিক ফাউন্ডার বোনাস",
-        description: "ফাউন্ডার হিসেবে আপনার অবদানের জন্য মাসিক ৫% থেকে ১০% পর্যন্ত অতিরিক্ত বোনাস পাওয়ার জন্য প্রস্তুত থাকুন।",
+        title: "Monthly Founder Bonus",
+        description: "Get ready to receive an additional monthly bonus of 5% to 10% for your contributions as a Founder.",
         status: "planned" as Status,
     },
 ];
 
 const phase3Features = [
     {
-        title: "চক্রবৃদ্ধি ইঞ্জিন (The Compounding Engine)",
-        description: "এটি আমাদের সবচেয়ে শক্তিশালী ফিচার হতে চলেছে। আপনার দৈনিক আয়কে স্বয়ংক্রিয়ভাবে পুনঃবিনিয়োগ করে চক্রবৃদ্ধি হারে আপনার সম্পদ বৃদ্ধি করুন। মিলিনিয়ার হওয়ার পথে এটি হবে আপনার তুরুপের তাস।",
+        title: "The Compounding Engine",
+        description: "This will be our most powerful feature. Grow your wealth exponentially by automatically reinvesting your daily earnings.",
         status: "research" as Status,
     },
     {
-        title: "AI-ভিত্তিক পারফরম্যান্স সাজেশন",
-        description: "আমাদের কৃত্রিম বুদ্ধিমত্তা আপনার পারফরম্যান্স বিশ্লেষণ করে আপনাকে ব্যক্তিগত পরামর্শ দেবে, যা আপনার আয়কে সর্বোচ্চ পর্যায়ে নিয়ে যেতে সাহায্য করবে।",
+        title: "AI-Powered Performance Suggestions",
+        description: "Our AI will analyze your performance and provide personalized advice to help you maximize your income.",
         status: "research" as Status,
     },
      {
-        title: "বিলিয়নেয়ার্স ক্লাব প্রি-অ্যাক্সেস",
-        description: "যারা আমাদের লক্ষ্যমাত্রা পূরণ করবে, তাদের জন্য উন্মুক্ত হবে বিলিয়নেয়ার্স ক্লাবের দরজা। এখানে অপেক্ষা করছে অকল্পনীয় সব সুযোগ এবং এলিট বিনিয়োগের জগৎ।",
+        title: "Billionaire's Club Pre-Access",
+        description: "The doors to the Billionaire's Club will open for those who meet our targets, offering incredible opportunities and an elite investment world.",
         status: "research" as Status,
     },
 ];
@@ -80,51 +80,51 @@ export default function GoldenJourneyPage() {
     const { userData } = useUserData();
 
     return (
-        <div className="space-y-12">
-            <header className="text-center">
-                <h1 className="text-3xl font-bold tracking-tight font-headline">আপনার আর্থিক স্বাধীনতার স্বর্ণালী পথচলা</h1>
-                <p className="text-muted-foreground mt-2 text-lg">A Three-Month Roadmap to Becoming a True Millionaire</p>
+        <div className="space-y-12 text-white p-2">
+            <header className="text-center space-y-4">
+                <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight font-headline bg-clip-text text-transparent bg-gradient-to-br from-yellow-300 to-amber-500">
+                    The Golden Journey
+                </h1>
+                <p className="text-muted-foreground mt-2 text-lg md:text-xl">A Three-Month Roadmap to Becoming a True Millionaire</p>
             </header>
 
             <div className="relative border-l-2 border-primary/20 ml-6 space-y-16">
                  <PhaseSection
                     phaseNumber={1}
-                    title="ভিত্তি স্থাপন এবং আত্মবিশ্বাসের সঞ্চার (প্রথম মাস)"
+                    title="Foundation & Confidence Building (Month 1)"
                     icon={Target}
                     features={phase1Features}
                     userData={userData}
                  />
                  <PhaseSection
                     phaseNumber={2}
-                    title="প্রবৃদ্ধি এবং সুযোগের সদ্ব্যবহার (দ্বিতীয় মাস)"
-                    icon={LineChart}
+                    title="Growth and Opportunity (Month 2)"
+                    icon={Rocket}
                     features={phase2Features}
                     userData={userData}
                  />
                   <PhaseSection
                     phaseNumber={3}
-                    title="পরিপূর্ণ স্বাধীনতা এবং অটোমেশন (তৃতীয় মাস)"
+                    title="Total Freedom and Automation (Month 3)"
                     icon={Bot}
                     features={phase3Features}
                     userData={userData}
                  />
             </div>
-
         </div>
     );
 }
 
 
 const PhaseSection = ({ phaseNumber, title, icon: Icon, features, userData }: { phaseNumber: number, title: string, icon: React.ElementType, features: any[], userData: any }) => (
-     <div className="relative pl-10">
-        <div className="absolute -left-[13px] top-0 h-6 w-6 rounded-full bg-primary flex items-center justify-center text-primary-foreground font-bold">
-            {phaseNumber}
+     <div className="relative pl-12">
+        <div className="absolute -left-4 top-0 h-8 w-8 rounded-full bg-primary flex items-center justify-center ring-8 ring-background">
+             <Icon className="h-4 w-4 text-primary-foreground" />
         </div>
-        <h2 className="text-2xl font-bold font-headline flex items-center gap-3">
-            <Icon className="h-7 w-7 text-primary" />
-            {title}
+        <h2 className="text-2xl font-bold font-headline mb-8">
+            <span className="text-primary">Phase {phaseNumber}:</span> {title}
         </h2>
-         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+         <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
             {features.map(feature => <FeatureCard key={feature.title} feature={feature} userData={userData}/>)}
         </div>
     </div>
@@ -132,26 +132,22 @@ const PhaseSection = ({ phaseNumber, title, icon: Icon, features, userData }: { 
 
 
 const FeatureCard = ({ feature, userData }: { feature: any, userData: any }) => {
-    const StatusIcon = statusIcons[feature.status].icon;
-    const statusColor = statusIcons[feature.status].color;
-    const statusBgColor = statusIcons[feature.status].bgColor;
-    const statusText = statusIcons[feature.status].text;
+    const status = statusConfig[feature.status];
+    const StatusIcon = status.icon;
 
     return (
-        <Card className="hover:shadow-lg hover:border-primary/30 transition-all duration-300">
+        <Card className="bg-gray-800/50 border-gray-700 hover:border-primary/50 hover:-translate-y-1 transition-all duration-300 group">
             <CardHeader>
-                <div className="flex justify-between items-start">
-                    <CardTitle className="text-lg">{feature.title}</CardTitle>
-                    <div className={`flex items-center gap-2 text-xs font-medium px-2 py-1 rounded-full ${statusColor} ${statusBgColor}`}>
-                        <StatusIcon className="h-4 w-4"/>
-                        <span>{statusText}</span>
-                    </div>
+                 <div className={`inline-flex items-center gap-2 text-xs font-semibold px-3 py-1 rounded-full self-start ${status.bgColor} ${status.color}`}>
+                    <StatusIcon className="h-4 w-4"/>
+                    <span>{status.text}</span>
                 </div>
             </CardHeader>
-            <CardContent>
+            <CardContent className="space-y-3">
+                <CardTitle className="text-lg group-hover:text-primary transition-colors">{feature.title}</CardTitle>
                 <p className="text-sm text-muted-foreground">{feature.description}</p>
                 {feature.progress && (
-                    <div className="mt-4 text-xs text-primary/80 italic p-2 bg-primary/5 rounded-md">
+                    <div className="mt-4 text-xs text-primary/80 italic p-3 bg-primary/10 rounded-lg border border-primary/20">
                         {feature.progress(userData)}
                     </div>
                 )}
