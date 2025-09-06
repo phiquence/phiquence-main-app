@@ -1,24 +1,24 @@
+
 'use client';
 
-import { useEffect } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { AppSidebar, SidebarProvider, SidebarInset } from '@/components/app/sidebar';
+import { UserDataProvider } from '@/hooks/use-auth';
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
-  const searchParams = useSearchParams();
-
-  useEffect(() => {
-    const refCode = searchParams.get('ref');
-    if (refCode) {
-      // রেফারেল কোডটি ব্রাউজারের localStorage-এ সেভ করে রাখা হয়
-      // যাতে ব্যবহারকারী অন্য পেজে গেলেও কোডটি হারিয়ে না যায়
-      console.log(`Referral code captured: ${refCode}`);
-      localStorage.setItem('sponsorId', refCode);
-    }
-  }, [searchParams]);
-
+export default function AppLayout({
+  children,
+}: {
+  children: React.ReactNode
+}) {
   return (
-    <html lang="en">
-      <body>{children}</body>
-    </html>
+    <UserDataProvider>
+        <SidebarProvider>
+            <AppSidebar />
+            <SidebarInset>
+                <div className="p-4 sm:p-6 lg:p-8">
+                    {children}
+                </div>
+            </SidebarInset>
+        </SidebarProvider>
+    </UserDataProvider>
   );
 }
