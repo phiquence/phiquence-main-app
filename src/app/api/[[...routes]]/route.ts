@@ -129,9 +129,10 @@ app.post('/wallet/webhook', async (c) => {
         const userDoc = userQuery.docs[0];
         const userId = userDoc.id;
         const userRef = db.doc(`users/${userId}`);
+        const userData = userDoc.data();
 
         await db.runTransaction(async (tx) => {
-             // 1. Update user balance
+            // 1. Update user balance
             tx.update(userRef, {
                 [`balances.${currency!.toLowerCase()}`]: admin.firestore.FieldValue.increment(amount)
             });
@@ -153,6 +154,24 @@ app.post('/wallet/webhook', async (c) => {
                 },
                 createdAt: admin.firestore.FieldValue.serverTimestamp(),
             });
+
+            // 3. Queue a deposit confirmation email
+            if (userData?.email) {
+                const mailRef = db.collection("mail").doc();
+                tx.set(mailRef, {
+                    to: [userData.email],
+                    template: {
+                        name: "deposit-success", // Assumes a "deposit-success" template exists
+                        data: {
+                            name: userData.name || "Pioneer",
+                            amount: amount.toFixed(2),
+                            currency: currency,
+                            txHash: txHash,
+                            cta_link: `https://phiquence-ndim2.web.app/app/wallet`
+                        }
+                    }
+                });
+            }
         });
         
         return c.json({ ok: true, message: `Processed deposit for user ${userId}` });

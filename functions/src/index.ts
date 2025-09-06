@@ -1,11 +1,11 @@
 
-import { onRequest } from "firebase-functions/v2/https";
+import { onCall, onRequest, HttpsError } from "firebase-functions/v2/https";
 import { onUserCreated } from "firebase-functions/v2/auth";
 import * as admin from "firebase-admin";
 import express, { Request, Response, NextFunction } from "express";
-import * as sgMail from "@sendgrid/mail";
 
 admin.initializeApp();
+const db = admin.firestore();
 
 // Extend the Express Request type
 declare global {
@@ -50,67 +50,89 @@ export const api = onRequest(
   app
 );
 
+/**
+ * Sends a welcome email when a new user signs up by writing to the 'mail' collection,
+ * which is monitored by the "Trigger Email from Firestore" extension.
+ */
 export const onnewusercreate = onUserCreated({
   region: "asia-southeast1",
-  secrets: ["SENDGRID_API_KEY"],
 }, async (event) => {
   const user = event.data;
   if (!user.email) {
     console.error(`User ${user.uid} has no email.`);
     return;
   }
-  
-  sgMail.setApiKey(process.env.SENDGRID_API_KEY!);
 
   const displayName = user.displayName || "Pioneer";
   
-  // In a real app, you'd use a template ID from SendGrid
-  // const welcomeEmail = {
-  //   to: user.email,
-  //   from: 'welcome@phiquence.com', // This must be a verified sender
-  //   templateId: 'd-your-template-id',
-  //   dynamicTemplateData: {
-  //     name: displayName,
-  //     cta_link: 'https://phiquence-ndim2.web.app/login'
-  //   },
-  // };
-
-  // For now, sending a rich HTML email directly
   const welcomeEmail = {
-    to: user.email,
-    from: {
-        name: 'The Phiquence Team',
-        email: 'welcome@phiquence.com'
-    },
-    subject: `Welcome to PHIQUENCE, ${displayName}!`,
-    html: `
-        <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
-          <div style="max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #ddd; border-radius: 10px;">
-            <h2 style="color: #0056b3;">Welcome to PHIQUENCE, ${displayName}!</h2>
-            <p>We are thrilled to have you on board. You've just taken the first step towards achieving true financial balance and real growth.</p>
-            <p>Your journey into a new era of financial empowerment begins now. Here are a few things you can do to get started:</p>
-            <ul style="list-style-type: none; padding: 0;">
-              <li style="margin-bottom: 10px;">✅ <strong>Explore Your Dashboard:</strong> Get familiar with your personalized space.</li>
-              <li style="margin-bottom: 10px;">📈 <strong>Grow Your Assets:</strong> Check out our staking packages to start earning daily rewards.</li>
-              <li style="margin-bottom: 10px;">🤝 <strong>Build Your Team:</strong> Find your unique referral link in the affiliate center and invite others.</li>
-            </ul>
-            <p>If you have any questions, our AI-powered support and dedicated team are always here to help.</p>
-            <a href="https://phiquence-ndim2.web.app/login" style="background-color: #007bff; color: white; padding: 12px 25px; text-decoration: none; border-radius: 5px; display: inline-block; margin-top: 15px;">Go to Your Dashboard</a>
-            <br><br>
-            <p>Best regards,</p>
-            <p><strong>The Phiquence Team</strong></p>
-          </div>
-        </div>
-      `,
+      to: user.email,
+      template: {
+          name: "welcome", // This assumes a template named "welcome" exists in SendGrid or the extension config
+          data: {
+              name: displayName,
+              cta_link: "https://phiquence-ndim2.web.app/login",
+          },
+      },
   };
-  
+
   try {
-    await sgMail.send(welcomeEmail);
-    console.log(`Welcome email sent to ${user.email}`);
+    // Add a new document to the "mail" collection
+    await db.collection("mail").add(welcomeEmail);
+    console.log(`Welcome email queued for ${user.email}`);
   } catch (error: any) {
-    console.error("Error sending welcome email:", error);
-     if (error.response) {
-      console.error(error.response.body)
-    }
+    console.error("Error queueing welcome email:", error);
   }
+});
+
+
+/**
+ * A callable function for admins to send a bulk email to all users.
+ * It iterates through all users and adds an email document for each to the 'mail' collection.
+ */
+export const sendBulkEmail = onCall({ region: "asia-southeast1" }, async (request) => {
+    // 1. Authentication and Authorization
+    if (request.auth?.token.role !== "admin") {
+        throw new HttpsError("permission-denied", "You must be an admin to send bulk emails.");
+    }
+    
+    // 2. Input Validation
+    const { subject, html } = request.data;
+    if (!subject || !html) {
+        throw new HttpsError("invalid-argument", "The function must be called with 'subject' and 'html' arguments.");
+    }
+
+    // 3. Fetch all users
+    try {
+        const usersSnapshot = await db.collection("users").get();
+        const emails: string[] = [];
+        usersSnapshot.forEach(doc => {
+            const user = doc.data();
+            if (user.email) {
+                emails.push(user.email);
+            }
+        });
+        
+        // 4. Create a batch write to queue all emails
+        const batch = db.batch();
+        emails.forEach(email => {
+            const mailRef = db.collection("mail").doc(); // Create a new doc with a random ID
+            batch.set(mailRef, {
+                to: [email],
+                message: {
+                    subject: subject,
+                    html: html,
+                },
+            });
+        });
+
+        // 5. Commit the batch
+        await batch.commit();
+        
+        return { success: true, message: `Successfully queued emails for ${emails.length} users.` };
+
+    } catch (error) {
+        console.error("Failed to send bulk email:", error);
+        throw new HttpsError("internal", "An error occurred while trying to queue the emails.");
+    }
 });
