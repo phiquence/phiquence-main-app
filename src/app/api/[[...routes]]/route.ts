@@ -17,7 +17,7 @@ if (admin.apps.length === 0) {
         const serviceAccountKey = process.env.FIREBASE_SERVICE_ACCOUNT_KEY;
         if (serviceAccountKey) {
             console.log("Initializing Firebase Admin with Service Account Key...");
-            const serviceAccount = JSON.parse(serviceAccountKey);
+            const serviceAccount = JSON.parse(Buffer.from(serviceAccountKey, 'base64').toString('utf-8'));
             admin.initializeApp({
                 credential: admin.credential.cert(serviceAccount),
                 databaseURL: `https://phiquence-ndim2-default-rtdb.asia-southeast1.firebasedatabase.app`,
@@ -61,7 +61,7 @@ const authMiddleware = async (c: any, next: any) => {
 };
 
 
-// Unprotected webhook route
+// Unprotected webhook route for automated deposits
 app.post('/wallet/webhook', async (c) => {
     try {
         const signature = c.req.header('x-alchemy-signature');
@@ -91,7 +91,7 @@ app.post('/wallet/webhook', async (c) => {
         }
 
         const txHash = activity.hash;
-        const toAddress = activity.toAddress;
+        const toAddress = activity.toAddress; // This should be one of our mother wallets
         const fromAddress = activity.fromAddress;
         const rawValue = activity.rawContract.rawValue;
         const decimals = parseInt(activity.rawContract.decimal, 16);
@@ -99,9 +99,10 @@ app.post('/wallet/webhook', async (c) => {
         
         const amount = parseFloat(ethers.utils.formatUnits(rawValue, decimals));
 
+        // Check if transaction has already been processed
         const txQuery = await db.collection("transactions").where("ref", "==", txHash).get();
         if (!txQuery.empty) {
-            return c.json({ ok: false, error: "transaction_already_processed" }, 400);
+            return c.json({ ok: true, message: "transaction_already_processed" });
         }
         
         let currency: 'USDT' | 'BNB' | 'PHI' | null = null;
@@ -110,18 +111,16 @@ app.post('/wallet/webhook', async (c) => {
         } else if (tokenAddress.toLowerCase() === process.env.NEXT_PUBLIC_PHI_CONTRACT_ADDRESS?.toLowerCase()) {
             currency = 'PHI';
         }
-        // BNB is native, so it would have a different category, but we'll handle generic tokens.
 
         if (!currency) {
             return c.json({ ok: true, message: "Unsupported token." });
         }
         
-        // Find user by their registered wallet address
-        const userQuery = await db.collection("users").where(`wallets.${currency.toLowerCase()}_bep20`, "==", fromAddress).limit(1).get();
+        // Find user by their assigned deposit address
+        const userQuery = await db.collection("users").where(`wallets.usdt_bep20`, "==", toAddress).limit(1).get();
 
         if (userQuery.empty) {
-            // If no user is found by wallet, maybe check the memo/note field in a real implementation
-            return c.json({ ok: false, error: "user_not_found" }, 404);
+            return c.json({ ok: false, error: "user_not_found_for_deposit_address" }, 404);
         }
 
         const userDoc = userQuery.docs[0];
@@ -146,7 +145,8 @@ app.post('/wallet/webhook', async (c) => {
                 meta: {
                     network: 'BEP-20',
                     txHash: txHash,
-                    fromAddress: fromAddress
+                    fromAddress: fromAddress,
+                    source: 'webhook'
                 },
                 createdAt: admin.firestore.FieldValue.serverTimestamp(),
             });
@@ -181,7 +181,11 @@ app.get('/wallet/deposit-address', async (c) => {
         const depositAddress = userData?.wallets?.usdt_bep20;
 
         if (!depositAddress) {
-            return c.json({ ok: false, error: "Deposit address not assigned. Please contact support." }, 404);
+            // If address doesn't exist, create one
+            // In a real app, this might come from a wallet generation service
+            const newAddress = ethers.Wallet.createRandom().address;
+            await userRef.update({ 'wallets.usdt_bep20': newAddress });
+            return c.json({ ok: true, address: newAddress });
         }
 
         return c.json({ ok: true, address: depositAddress });
@@ -218,6 +222,7 @@ app.post('/wallet/request-deposit', async (c) => {
             meta: {
                 network: 'BEP-20',
                 txHash: txHash,
+                source: 'manual'
             },
             createdAt: admin.firestore.FieldValue.serverTimestamp(),
         });
@@ -468,6 +473,33 @@ app.post('/founder/join', async (c) => {
     } catch (e: any) {
         console.error("Becoming a founder failed:", e);
         return c.json({ ok: false, error: e.message || "An unexpected error occurred." }, 500);
+    }
+});
+
+// GET /api/affiliate/summary
+app.get('/affiliate/summary', authMiddleware, async (c) => {
+    const uid = c.get('uid');
+
+    try {
+        const userRef = db.doc(`users/${uid}`);
+        const userDoc = await userRef.get();
+
+        if (!userDoc.exists) {
+            return c.json({ ok: false, error: "User not found" }, 404);
+        }
+
+        const userData = userDoc.data();
+        const summary = {
+            directs: userData?.teamStats?.directs || 0,
+            totalTeam: userData?.teamStats?.total || 0,
+            totalCommission: userData?.balances?.commission || 0,
+            todayCommission: 0, // This would require a more complex aggregation
+        };
+
+        return c.json({ ok: true, summary });
+    } catch (error) {
+        console.error("Error fetching affiliate summary:", error);
+        return c.json({ ok: false, error: "Internal server error" }, 500);
     }
 });
 
