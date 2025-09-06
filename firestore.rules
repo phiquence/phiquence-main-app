@@ -1,78 +1,49 @@
 rules_version = '2';
-
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Helper function to check ownership
-    function isOwner(userId) {
-      return request.auth != null && request.auth.uid == userId;
-    }
-
-    // Settings should only be readable by authenticated users, and writable only by admins
-    match /settings/global {
-       allow read: if request.auth != null;
-       allow write: if request.auth.token.role == 'admin';
-    }
-
-    // Users Collection Rules
+    // Users can only read and update their own document.
+    // They can create their own document upon signup.
     match /users/{userId} {
-      // READ: A user can only read their own document.
-      allow get: if isOwner(userId);
-      
-      // LIST: No one should be able to list all users.
-      allow list: if false;
-
-      // CREATE: A new user can create their own user document upon signup.
-      allow create: if isOwner(userId);
-
-      // UPDATE: A user can only update their own document's non-critical fields.
-      // Balances should only be updated by server-side logic (functions).
-      allow update: if isOwner(userId) && !("balances" in request.resource.data);
+      allow read, update, delete: if request.auth.uid == userId;
+      allow create: if request.auth.uid == userId;
     }
-    
-    // Transactions Collection Rules
-    match /transactions/{txId} {
-        // A user can read their own transactions.
-        allow get: if isOwner(resource.data.userId);
-        // Users can't list all transactions, queries must be used.
-        allow list: if request.auth != null;
-        // Transactions are created by the server (or webhook).
-        allow create, update, delete: if false;
+
+    // Users can only read and create transactions linked to their own userId.
+    match /transactions/{transactionId} {
+      allow read, create: if request.auth.uid == request.resource.data.userId || request.auth.uid == resource.data.userId;
     }
-    
-    // Stakes Collection Rules
+
+    // Users can only read and create stakes linked to their own userId.
     match /stakes/{stakeId} {
-       // A user can read their own stakes.
-       allow get: if isOwner(resource.data.userId);
-       // Queries are allowed for authenticated users (will be filtered by userId in code).
-       allow list: if request.auth != null;
-       // Stakes are created/updated by the server.
-       allow create, update, delete: if false;
+      allow read, create: if request.auth.uid == request.resource.data.userId || request.auth.uid == resource.data.userId;
     }
 
-    // Payouts (Commissions) Collection Rules
+    // Users can only read payouts that are directed to them.
     match /payouts/{payoutId} {
-       // A user can read payouts made to them.
-       allow get: if isOwner(resource.data.toUserId);
-       // Queries are allowed.
-       allow list: if request.auth != null;
-       // Payouts created by the server.
-       allow create, update, delete: if false;
+      allow read: if request.auth.uid == resource.data.toUserId;
+      // Payouts are created on the server-side via Cloud Functions.
     }
     
-     // Trading Sessions
-    match /tradingSessions/{sessionId} {
-      // Any authenticated user can view a session's details.
-      allow get: if request.auth != null;
-      
-      // Bets within a session
-      match /bets/{betId} {
-        // A user can read their own bet.
-        allow get: if isOwner(resource.data.userId);
-        // Bets are created/updated by server logic only.
-        allow create, update, delete: if false;
-      }
+    // Users can only read their own affiliate network members.
+    match /affiliateNetworks/{userId}/{document=**} {
+      allow read: if request.auth.uid == userId;
     }
 
+    // Trading sessions are public and read-only for clients.
+    match /tradingSessions/{sessionId} {
+        allow read: if request.auth != null;
+        // Bets are placed via API, not direct client write
+        match /bets/{userId} {
+            allow read: if request.auth != null;
+            allow write: if false; // Disallow client writes
+        }
+    }
+
+    // Global settings are read-only for all authenticated users.
+    match /settings/global {
+      allow read: if request.auth != null;
+      allow write: if false; // Only backend can write
+    }
   }
 }
