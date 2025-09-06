@@ -1,19 +1,10 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
-import { onAuthStateChanged, User } from 'firebase/auth';
-import { auth } from '@/lib/firebase';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Users, UserPlus, DollarSign, Sunrise, Loader2 } from 'lucide-react';
+import { Users, UserPlus, DollarSign, Sunrise } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
-
-interface SummaryData {
-    directs: number;
-    totalTeam: number;
-    totalCommission: number;
-    todayCommission: number;
-}
+import { useUserData } from '@/hooks/use-auth';
 
 function StatCard({ icon: Icon, title, value, isLoading }: { icon: React.ElementType, title: string, value: string | number, isLoading: boolean }) {
     return (
@@ -33,57 +24,17 @@ function StatCard({ icon: Icon, title, value, isLoading }: { icon: React.Element
     );
 }
 
-
 export default function TeamSummary() {
-    const [summary, setSummary] = useState<SummaryData | null>(null);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
-    const [user, setUser] = useState<User | null>(null);
+    const { userData, loading, error } = useUserData();
 
-    useEffect(() => {
-        const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-            setUser(currentUser);
-            if (!currentUser) {
-                setLoading(false);
-            }
-        });
-        return () => unsubscribe();
-    }, []);
-
-    useEffect(() => {
-        if (!user) return;
-
-        const fetchSummary = async () => {
-            setLoading(true);
-            setError(null);
-            try {
-                const token = await user.getIdToken();
-                const response = await fetch('/api/affiliate/summary', {
-                    headers: {
-                        'Authorization': `Bearer ${token}`
-                    }
-                });
-
-                if (!response.ok) {
-                    const errorData = await response.json();
-                    throw new Error(errorData.error || 'Failed to fetch summary');
-                }
-
-                const data = await response.json();
-                setSummary(data.summary);
-            } catch (err: any) {
-                setError(err.message);
-                console.error(err);
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        fetchSummary();
-    }, [user]);
-    
     const formatCurrency = (amount: number = 0) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount);
 
+    const summary = {
+        directs: userData?.teamStats?.directs ?? 0,
+        totalTeam: userData?.teamStats?.total ?? 0,
+        totalCommission: userData?.balances?.commission ?? 0,
+        todayCommission: userData?.teamStats?.dailyIncome ?? 0,
+    };
 
     if (error) {
         return <p className="text-destructive">Error: {error}</p>;
@@ -94,25 +45,25 @@ export default function TeamSummary() {
             <StatCard
                 icon={UserPlus}
                 title="Direct Members"
-                value={summary?.directs ?? 0}
+                value={summary.directs}
                 isLoading={loading}
             />
             <StatCard
                 icon={Users}
                 title="Total Team"
-                value={summary?.totalTeam ?? 0}
+                value={summary.totalTeam}
                 isLoading={loading}
             />
-             <StatCard
+            <StatCard
                 icon={Sunrise}
                 title="Today's Commission"
-                value={formatCurrency(summary?.todayCommission)}
+                value={formatCurrency(summary.todayCommission)}
                 isLoading={loading}
             />
             <StatCard
                 icon={DollarSign}
                 title="Total Commission"
-                value={formatCurrency(summary?.totalCommission)}
+                value={formatCurrency(summary.totalCommission)}
                 isLoading={loading}
             />
         </div>

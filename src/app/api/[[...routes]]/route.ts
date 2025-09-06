@@ -476,33 +476,6 @@ app.post('/founder/join', async (c) => {
     }
 });
 
-// GET /api/affiliate/summary
-app.get('/affiliate/summary', authMiddleware, async (c) => {
-    const uid = c.get('uid');
-
-    try {
-        const userRef = db.doc(`users/${uid}`);
-        const userDoc = await userRef.get();
-
-        if (!userDoc.exists) {
-            return c.json({ ok: false, error: "User not found" }, 404);
-        }
-
-        const userData = userDoc.data();
-        const summary = {
-            directs: userData?.teamStats?.directs || 0,
-            totalTeam: userData?.teamStats?.total || 0,
-            totalCommission: userData?.balances?.commission || 0,
-            todayCommission: 0, // This would require a more complex aggregation
-        };
-
-        return c.json({ ok: true, summary });
-    } catch (error) {
-        console.error("Error fetching affiliate summary:", error);
-        return c.json({ ok: false, error: "Internal server error" }, 500);
-    }
-});
-
 
 // Export the app for Vercel
 export const GET = handle(app);
