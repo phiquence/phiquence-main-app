@@ -1,3 +1,4 @@
+
 {
   "name": "functions",
   "scripts": {
@@ -16,7 +17,7 @@
   "main": "lib/index.js",
   "dependencies": {
     "express": "^4.19.2",
-    "firebase-admin": "^12.1.0",
+    "firebase-admin": "^12.1.1",
     "firebase-functions": "^5.0.1"
   },
   "devDependencies": {
